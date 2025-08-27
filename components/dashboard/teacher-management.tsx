@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select'
 import { getTeachers, addTeacher, updateTeacher } from '@/lib/database'
 import { deleteTeacher } from '@/lib/teacher-service'
-import { PlusIcon, PenIcon, TrashIcon } from "lucide-react"
+import { PlusIcon, PenIcon, TrashIcon, EyeIcon } from "lucide-react"
 import type { Teacher } from '@/lib/types'
 
 export function TeacherManagement() {
@@ -28,8 +28,10 @@ export function TeacherManagement() {
   const [isLoading, setIsLoading] = useState(true)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null)
-  const [formData, setFormData] = useState({
+  
+  const initialFormData = {
     name: '',
     nip: '',
     gender: '',
@@ -39,7 +41,9 @@ export function TeacherManagement() {
     email: '',
     position: '',
     status: 'active'
-  })
+  }
+  
+  const [formData, setFormData] = useState(initialFormData)
 
   useEffect(() => {
     loadTeachers()
@@ -78,20 +82,7 @@ export function TeacherManagement() {
         await addTeacher(formData)
       }
       await loadTeachers()
-      setIsAddDialogOpen(false)
-      setIsEditDialogOpen(false)
-      setSelectedTeacher(null)
-      setFormData({
-        name: '',
-        nip: '',
-        gender: '',
-        date_of_birth: '',
-        address: '',
-        phone: '',
-        email: '',
-        position: '',
-        status: 'active'
-      })
+      handleCloseDialogs()
     } catch (error) {
       console.error('Error saving teacher:', error)
     }
@@ -113,6 +104,25 @@ export function TeacherManagement() {
     setIsEditDialogOpen(true)
   }
 
+  function handleView(teacher: Teacher) {
+    setSelectedTeacher(teacher)
+    setIsViewDialogOpen(true)
+  }
+
+  function handleAdd() {
+    setSelectedTeacher(null)
+    setFormData(initialFormData)
+    setIsAddDialogOpen(true)
+  }
+
+  function handleCloseDialogs() {
+    setIsAddDialogOpen(false)
+    setIsEditDialogOpen(false)
+    setIsViewDialogOpen(false)
+    setSelectedTeacher(null)
+    setFormData(initialFormData)
+  }
+
   if (isLoading) {
     return <div>Loading...</div>
   }
@@ -121,116 +131,10 @@ export function TeacherManagement() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Manajemen Guru</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>Tambah Guru</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Tambah Guru Baru</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nama</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="nip">NIP</Label>
-                <Input
-                  id="nip"
-                  value={formData.nip}
-                  onChange={e => setFormData({...formData, nip: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="gender">Jenis Kelamin</Label>
-                <Select
-                  value={formData.gender}
-                  onValueChange={value => setFormData({...formData, gender: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih jenis kelamin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="L">Laki-laki</SelectItem>
-                    <SelectItem value="P">Perempuan</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="date_of_birth">Tanggal Lahir</Label>
-                <Input
-                  id="date_of_birth"
-                  type="date"
-                  value={formData.date_of_birth}
-                  onChange={e => setFormData({...formData, date_of_birth: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Alamat</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={e => setFormData({...formData, address: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telepon</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={e => setFormData({...formData, phone: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={e => setFormData({...formData, email: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="position">Jabatan</Label>
-                <Input
-                  id="position"
-                  value={formData.position}
-                  onChange={e => setFormData({...formData, position: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={value => setFormData({...formData, status: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Aktif</SelectItem>
-                    <SelectItem value="inactive">Tidak Aktif</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit">
-                {selectedTeacher ? 'Update' : 'Simpan'}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={handleAdd}>
+          <PlusIcon className="h-4 w-4 mr-2" />
+          Tambah Guru
+        </Button>
       </div>
 
       <div className="grid gap-4">
@@ -271,6 +175,14 @@ export function TeacherManagement() {
                           variant="outline"
                           size="icon"
                           className="h-8 w-8"
+                          onClick={() => handleView(teacher)}
+                        >
+                          <EyeIcon className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
                           onClick={() => handleEdit(teacher)}
                         >
                           <PenIcon className="h-4 w-4" />
@@ -293,33 +205,33 @@ export function TeacherManagement() {
         )}
       </div>
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      {/* Add Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Data Guru</DialogTitle>
+            <DialogTitle>Tambah Guru Baru</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Same form fields as add dialog */}
             <div className="space-y-2">
-              <Label htmlFor="name">Nama</Label>
+              <Label htmlFor="add-name">Nama</Label>
               <Input
-                id="name"
+                id="add-name"
                 value={formData.name}
                 onChange={e => setFormData({...formData, name: e.target.value})}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="nip">NIP</Label>
+              <Label htmlFor="add-nip">NIP</Label>
               <Input
-                id="nip"
+                id="add-nip"
                 value={formData.nip}
                 onChange={e => setFormData({...formData, nip: e.target.value})}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="gender">Jenis Kelamin</Label>
+              <Label htmlFor="add-gender">Jenis Kelamin</Label>
               <Select
                 value={formData.gender}
                 onValueChange={value => setFormData({...formData, gender: value})}
@@ -334,9 +246,9 @@ export function TeacherManagement() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="date_of_birth">Tanggal Lahir</Label>
+              <Label htmlFor="add-date_of_birth">Tanggal Lahir</Label>
               <Input
-                id="date_of_birth"
+                id="add-date_of_birth"
                 type="date"
                 value={formData.date_of_birth}
                 onChange={e => setFormData({...formData, date_of_birth: e.target.value})}
@@ -344,27 +256,27 @@ export function TeacherManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="address">Alamat</Label>
+              <Label htmlFor="add-address">Alamat</Label>
               <Input
-                id="address"
+                id="add-address"
                 value={formData.address}
                 onChange={e => setFormData({...formData, address: e.target.value})}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Telepon</Label>
+              <Label htmlFor="add-phone">Telepon</Label>
               <Input
-                id="phone"
+                id="add-phone"
                 value={formData.phone}
                 onChange={e => setFormData({...formData, phone: e.target.value})}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="add-email">Email</Label>
               <Input
-                id="email"
+                id="add-email"
                 type="email"
                 value={formData.email}
                 onChange={e => setFormData({...formData, email: e.target.value})}
@@ -372,16 +284,16 @@ export function TeacherManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="position">Jabatan</Label>
+              <Label htmlFor="add-position">Jabatan</Label>
               <Input
-                id="position"
+                id="add-position"
                 value={formData.position}
                 onChange={e => setFormData({...formData, position: e.target.value})}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="add-status">Status</Label>
               <Select
                 value={formData.status}
                 onValueChange={value => setFormData({...formData, status: value})}
@@ -395,8 +307,181 @@ export function TeacherManagement() {
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit">Update</Button>
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={handleCloseDialogs}>
+                Batal
+              </Button>
+              <Button type="submit">Tambah Guru</Button>
+            </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Data Guru</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Nama</Label>
+              <Input
+                id="edit-name"
+                value={formData.name}
+                onChange={e => setFormData({...formData, name: e.target.value})}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-nip">NIP</Label>
+              <Input
+                id="edit-nip"
+                value={formData.nip}
+                onChange={e => setFormData({...formData, nip: e.target.value})}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-gender">Jenis Kelamin</Label>
+              <Select
+                value={formData.gender}
+                onValueChange={value => setFormData({...formData, gender: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih jenis kelamin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="L">Laki-laki</SelectItem>
+                  <SelectItem value="P">Perempuan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-date_of_birth">Tanggal Lahir</Label>
+              <Input
+                id="edit-date_of_birth"
+                type="date"
+                value={formData.date_of_birth}
+                onChange={e => setFormData({...formData, date_of_birth: e.target.value})}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-address">Alamat</Label>
+              <Input
+                id="edit-address"
+                value={formData.address}
+                onChange={e => setFormData({...formData, address: e.target.value})}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Telepon</Label>
+              <Input
+                id="edit-phone"
+                value={formData.phone}
+                onChange={e => setFormData({...formData, phone: e.target.value})}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={formData.email}
+                onChange={e => setFormData({...formData, email: e.target.value})}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-position">Jabatan</Label>
+              <Input
+                id="edit-position"
+                value={formData.position}
+                onChange={e => setFormData({...formData, position: e.target.value})}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-status">Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={value => setFormData({...formData, status: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Aktif</SelectItem>
+                  <SelectItem value="inactive">Tidak Aktif</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={handleCloseDialogs}>
+                Batal
+              </Button>
+              <Button type="submit">Update Guru</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Detail Guru</DialogTitle>
+          </DialogHeader>
+          {selectedTeacher && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">NIP</Label>
+                  <p className="text-sm">{selectedTeacher.nip}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Nama</Label>
+                  <p className="text-sm">{selectedTeacher.name}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Jenis Kelamin</Label>
+                  <p className="text-sm">{selectedTeacher.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Jabatan</Label>
+                  <p className="text-sm">{selectedTeacher.position}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Tanggal Lahir</Label>
+                  <p className="text-sm">{new Date(selectedTeacher.date_of_birth).toLocaleDateString('id-ID')}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Telepon</Label>
+                  <p className="text-sm">{selectedTeacher.phone}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                  <p className="text-sm">{selectedTeacher.email}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <p className="text-sm">{selectedTeacher.status === 'active' ? 'Aktif' : 'Tidak Aktif'}</p>
+                </div>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">Alamat</Label>
+                <p className="text-sm">{selectedTeacher.address}</p>
+              </div>
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={handleCloseDialogs}>
+                  Tutup
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

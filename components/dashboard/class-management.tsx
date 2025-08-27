@@ -2,7 +2,7 @@
 
 import { useState, useEffect, ChangeEvent } from 'react'
 import { Button } from '@/components/ui/button'
-import { PlusIcon, PenIcon, TrashIcon } from "lucide-react"
+import { PlusIcon, PenIcon, TrashIcon, EyeIcon } from "lucide-react"
 import { 
   Dialog,
   DialogContent, 
@@ -41,6 +41,7 @@ const ClassManagement = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [selectedClass, setSelectedClass] = useState<Class | null>(null)
 
   const initialFormData: ClassFormData = {
@@ -103,10 +104,7 @@ const ClassManagement = () => {
         await addClass(dataToSubmit)
       }
       await loadData()
-      setIsAddDialogOpen(false)
-      setIsEditDialogOpen(false)
-      setSelectedClass(null)
-      setFormData(initialFormData)
+      handleCloseDialogs()
     } catch (error) {
       console.error('Error saving class:', error)
       alert('Gagal menyimpan kelas. Silakan coba lagi.')
@@ -129,6 +127,25 @@ const ClassManagement = () => {
     setIsEditDialogOpen(true)
   }
 
+  function handleView(classData: Class) {
+    setSelectedClass(classData)
+    setIsViewDialogOpen(true)
+  }
+
+  function handleAdd() {
+    setSelectedClass(null)
+    setFormData(initialFormData)
+    setIsAddDialogOpen(true)
+  }
+
+  function handleCloseDialogs() {
+    setIsAddDialogOpen(false)
+    setIsEditDialogOpen(false)
+    setIsViewDialogOpen(false)
+    setSelectedClass(null)
+    setFormData(initialFormData)
+  }
+
   if (isLoading) {
     return <div>Loading...</div>
   }
@@ -137,115 +154,10 @@ const ClassManagement = () => {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Manajemen Kelas</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Tambah Kelas
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Tambah Kelas Baru</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nama Kelas</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, name: e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="code">Kode Kelas</Label>
-                  <Input
-                    id="code"
-                    value={formData.code}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, code: e.target.value})}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="capacity">Kapasitas Kelas</Label>
-                  <Input
-                    id="capacity"
-                    type="number"
-                    value={formData.capacity?.toString() || ''}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => 
-                      setFormData({...formData, capacity: e.target.value ? Number(e.target.value) : undefined})}
-                    placeholder="Masukkan kapasitas"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="room">Ruangan</Label>
-                  <Input
-                    id="room"
-                    value={formData.room ?? ''}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => 
-                      setFormData({...formData, room: e.target.value || undefined})}
-                    placeholder="Masukkan ruangan"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="teacher_id">Wali Kelas</Label>
-                  <Select
-                    value={formData.teacher_id || undefined}
-                    onValueChange={(value: string) => setFormData({...formData, teacher_id: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih wali kelas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {teachers.map((teacher) => (
-                        <SelectItem key={teacher.id} value={teacher.id}>
-                          {teacher.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="school_year">Tahun Ajaran</Label>
-                  <Input
-                    id="school_year"
-                    value={formData.school_year}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => 
-                      setFormData({...formData, school_year: e.target.value})}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value: ClassStatus) => setFormData({...formData, status: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Aktif</SelectItem>
-                    <SelectItem value="inactive">Tidak Aktif</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit">
-                {selectedClass ? 'Update' : 'Simpan'}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={handleAdd}>
+          <PlusIcon className="h-4 w-4 mr-2" />
+          Tambah Kelas
+        </Button>
       </div>
 
       <div className="grid gap-4">
@@ -296,6 +208,14 @@ const ClassManagement = () => {
                             variant="outline" 
                             size="icon"
                             className="h-8 w-8"
+                            onClick={() => handleView(classData)}
+                          >
+                            <EyeIcon className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            className="h-8 w-8"
                             onClick={() => handleEdit(classData)}
                           >
                             <PenIcon className="h-4 w-4" />
@@ -319,6 +239,115 @@ const ClassManagement = () => {
         )}
       </div>
 
+      {/* Add Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tambah Kelas Baru</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="add-name">Nama Kelas</Label>
+                <Input
+                  id="add-name"
+                  value={formData.name}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, name: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="add-code">Kode Kelas</Label>
+                <Input
+                  id="add-code"
+                  value={formData.code}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({...formData, code: e.target.value})}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="add-capacity">Kapasitas Kelas</Label>
+                <Input
+                  id="add-capacity"
+                  type="number"
+                  value={formData.capacity?.toString() || ''}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => 
+                    setFormData({...formData, capacity: e.target.value ? Number(e.target.value) : undefined})}
+                  placeholder="Masukkan kapasitas"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="add-room">Ruangan</Label>
+                <Input
+                  id="add-room"
+                  value={formData.room ?? ''}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => 
+                    setFormData({...formData, room: e.target.value || undefined})}
+                  placeholder="Masukkan ruangan"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="add-teacher_id">Wali Kelas</Label>
+                <Select
+                  value={formData.teacher_id || undefined}
+                  onValueChange={(value: string) => setFormData({...formData, teacher_id: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih wali kelas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teachers.map((teacher) => (
+                      <SelectItem key={teacher.id} value={teacher.id}>
+                        {teacher.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="add-school_year">Tahun Ajaran</Label>
+                <Input
+                  id="add-school_year"
+                  value={formData.school_year}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => 
+                    setFormData({...formData, school_year: e.target.value})}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="add-status">Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value: ClassStatus) => setFormData({...formData, status: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Aktif</SelectItem>
+                  <SelectItem value="inactive">Tidak Aktif</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={handleCloseDialogs}>
+                Batal
+              </Button>
+              <Button type="submit">Tambah Kelas</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -416,8 +445,65 @@ const ClassManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit">Update</Button>
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={handleCloseDialogs}>
+                  Batal
+                </Button>
+                <Button type="submit">Update Kelas</Button>
+              </div>
             </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Detail Kelas</DialogTitle>
+          </DialogHeader>
+          {selectedClass && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Kode Kelas</Label>
+                  <p className="text-sm">{selectedClass.code}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Nama Kelas</Label>
+                  <p className="text-sm">{selectedClass.name}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Wali Kelas</Label>
+                  <p className="text-sm">{teachers.find(t => t.id === selectedClass.teacher_id)?.name || '-'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Tahun Ajaran</Label>
+                  <p className="text-sm">{selectedClass.school_year}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Kapasitas</Label>
+                  <p className="text-sm">{selectedClass.capacity || '-'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Jumlah Siswa</Label>
+                  <p className="text-sm">{selectedClass.current_students || 0}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Ruangan</Label>
+                  <p className="text-sm">{selectedClass.room || '-'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <p className="text-sm">{selectedClass.status === 'active' ? 'Aktif' : 'Tidak Aktif'}</p>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={handleCloseDialogs}>
+                  Tutup
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
