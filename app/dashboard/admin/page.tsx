@@ -8,7 +8,7 @@ import { ClassManagement } from "@/components/dashboard/class-management"
 import { PaymentManagement } from "@/components/dashboard/payment-management"
 import { PaymentTypesManagement } from "@/components/dashboard/payment-types-management"
 import { NewsManagement } from "@/components/dashboard/news-management"
-import { Users, GraduationCap, UserCheck, BookOpen, CreditCard, Newspaper } from "lucide-react"
+import { Users, GraduationCap, BookOpen, CreditCard, Newspaper } from "lucide-react"
 import { mockStudents, mockClasses, mockPayments, mockNews } from "@/lib/mock-data"
 
 export default function AdminDashboard() {
@@ -17,40 +17,22 @@ export default function AdminDashboard() {
   const stats = [
     {
       title: "Total Siswa",
-      value: mockStudents.length,
-      icon: GraduationCap,
+      value: mockStudents.length.toString(),
+      icon: Users,
       color: "text-blue-600",
     },
     {
       title: "Total Guru",
-      value: 8,
-      icon: Users,
+      value: mockClasses.length.toString(),
+      icon: GraduationCap,
       color: "text-green-600",
     },
     {
-      title: "Siswa Aktif",
-      value: mockStudents.filter((s) => s.status === "active").length,
-      icon: UserCheck,
-      color: "text-purple-600",
-    },
-    {
-      title: "Kelas Tersedia",
-      value: mockClasses.filter((c) => c.status === "active").length,
+      title: "Total Kelas",
+      value: mockClasses.length.toString(),
       icon: BookOpen,
       color: "text-orange-600",
-    },
-    {
-      title: "Pembayaran Lunas",
-      value: mockPayments.filter((p) => p.status === "paid").length,
-      icon: CreditCard,
-      color: "text-emerald-600",
-    },
-    {
-      title: "Artikel Dipublikasi",
-      value: mockNews.filter((n) => n.status === "published").length,
-      icon: Newspaper,
-      color: "text-indigo-600",
-    },
+    }
   ]
 
   return (
@@ -63,7 +45,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {stats.map((stat, index) => (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

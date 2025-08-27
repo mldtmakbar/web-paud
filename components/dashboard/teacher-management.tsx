@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { UserPlus, Edit, Trash2, Users } from "lucide-react"
+import { UserPlus, Edit, Trash2, Users, Key } from "lucide-react"
+import { toast } from "sonner"
+import { DialogFooter } from "@/components/ui/dialog"
 
 interface Teacher {
   id: string
@@ -20,6 +22,8 @@ interface Teacher {
   subject: string
   status: "active" | "inactive"
   joinDate: string
+  username?: string
+  password?: string
 }
 
 const initialTeachers: Teacher[] = [
@@ -31,6 +35,7 @@ const initialTeachers: Teacher[] = [
     subject: "Bahasa Indonesia",
     status: "active",
     joinDate: "2023-01-15",
+    username: "sarah",
   },
   {
     id: "2",
@@ -55,12 +60,18 @@ const initialTeachers: Teacher[] = [
 export function TeacherManagement() {
   const [teachers, setTeachers] = useState<Teacher[]>(initialTeachers)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false)
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     subject: "",
+  })
+  const [accountData, setAccountData] = useState({
+    username: "",
+    password: "",
+    confirmPassword: "",
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -85,6 +96,7 @@ export function TeacherManagement() {
     setFormData({ name: "", email: "", phone: "", subject: "" })
     setEditingTeacher(null)
     setIsDialogOpen(false)
+    toast.success(editingTeacher ? "Data guru berhasil diperbarui" : "Guru baru berhasil ditambahkan")
   }
 
   const handleEdit = (teacher: Teacher) => {
@@ -100,6 +112,7 @@ export function TeacherManagement() {
 
   const handleDelete = (id: string) => {
     setTeachers((prev) => prev.filter((teacher) => teacher.id !== id))
+    toast.success("Data guru berhasil dihapus")
   }
 
   const toggleStatus = (id: string) => {
@@ -108,6 +121,43 @@ export function TeacherManagement() {
         teacher.id === id ? { ...teacher, status: teacher.status === "active" ? "inactive" : "active" } : teacher,
       ),
     )
+  }
+
+  const handleEditAccount = (teacher: Teacher) => {
+    setEditingTeacher(teacher)
+    setAccountData({
+      username: teacher.username || "",
+      password: "",
+      confirmPassword: "",
+    })
+    setIsAccountDialogOpen(true)
+  }
+
+  const handleSaveAccount = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingTeacher) return
+
+    if (accountData.password && accountData.password !== accountData.confirmPassword) {
+      toast.error("Password dan konfirmasi password tidak cocok")
+      return
+    }
+
+    setTeachers((prev) =>
+      prev.map((teacher) => {
+        if (teacher.id === editingTeacher.id) {
+          return {
+            ...teacher,
+            username: accountData.username,
+            ...(accountData.password ? { password: accountData.password } : {}),
+          }
+        }
+        return teacher
+      })
+    )
+
+    setIsAccountDialogOpen(false)
+    setAccountData({ username: "", password: "", confirmPassword: "" })
+    toast.success("Akun guru berhasil diperbarui")
   }
 
   return (
@@ -188,6 +238,7 @@ export function TeacherManagement() {
               <TableHead>Mata Pelajaran</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Tanggal Bergabung</TableHead>
+              <TableHead>Username</TableHead>
               <TableHead>Aksi</TableHead>
             </TableRow>
           </TableHeader>
@@ -208,10 +259,14 @@ export function TeacherManagement() {
                   </Badge>
                 </TableCell>
                 <TableCell>{new Date(teacher.joinDate).toLocaleDateString("id-ID")}</TableCell>
+                <TableCell>{teacher.username || "-"}</TableCell>
                 <TableCell>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => handleEdit(teacher)}>
                       <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleEditAccount(teacher)}>
+                      <Key className="w-4 h-4" />
                     </Button>
                     <Button size="sm" variant="destructive" onClick={() => handleDelete(teacher.id)}>
                       <Trash2 className="w-4 h-4" />
@@ -222,6 +277,50 @@ export function TeacherManagement() {
             ))}
           </TableBody>
         </Table>
+        
+        {/* Account Management Dialog */}
+        <Dialog open={isAccountDialogOpen} onOpenChange={setIsAccountDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Pengaturan Akun Guru</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSaveAccount} className="space-y-4">
+              <div>
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  value={accountData.username}
+                  onChange={(e) => setAccountData((prev) => ({ ...prev, username: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">Password Baru (Kosongkan jika tidak diubah)</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={accountData.password}
+                  onChange={(e) => setAccountData((prev) => ({ ...prev, password: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={accountData.confirmPassword}
+                  onChange={(e) => setAccountData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsAccountDialogOpen(false)}>
+                  Batal
+                </Button>
+                <Button type="submit">Simpan</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   )

@@ -12,7 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { UserPlus, Edit, Trash2, GraduationCap } from "lucide-react"
+import { UserPlus, Edit, Trash2, GraduationCap, Key } from "lucide-react"
+import { toast } from "sonner"
+import { DialogFooter } from "@/components/ui/dialog"
 import { mockStudents, mockParents, type Student } from "@/lib/mock-data"
 
 interface ExtendedStudent extends Student {
@@ -52,7 +54,13 @@ export function StudentManagement() {
   )
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false)
   const [editingStudent, setEditingStudent] = useState<ExtendedStudent | null>(null)
+  const [accountData, setAccountData] = useState({
+    username: "",
+    password: "",
+    confirmPassword: "",
+  })
 
   const [formData, setFormData] = useState({
     name: "",
@@ -149,6 +157,7 @@ export function StudentManagement() {
     })
     setEditingStudent(null)
     setIsDialogOpen(false)
+    toast.success(editingStudent ? "Data siswa berhasil diperbarui" : "Siswa baru berhasil ditambahkan")
   }
 
   const handleEdit = (student: ExtendedStudent) => {
@@ -180,6 +189,7 @@ export function StudentManagement() {
 
   const handleDelete = (id: string) => {
     setStudents((prev) => prev.filter((student) => student.id !== id))
+    toast.success("Data siswa berhasil dihapus")
   }
 
   const toggleStatus = (id: string) => {
@@ -188,6 +198,40 @@ export function StudentManagement() {
         student.id === id ? { ...student, status: student.status === "active" ? "inactive" : "active" } : student,
       ),
     )
+  }
+
+  const handleEditAccount = (student: ExtendedStudent) => {
+    setEditingStudent(student)
+    const mockParent = mockParents.find(p => p.id_siswa === student.id)
+    setAccountData({
+      username: mockParent?.username || "",
+      password: "",
+      confirmPassword: "",
+    })
+    setIsAccountDialogOpen(true)
+  }
+
+  const handleSaveAccount = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingStudent) return
+
+    if (accountData.password && accountData.password !== accountData.confirmPassword) {
+      toast.error("Password dan konfirmasi password tidak cocok")
+      return
+    }
+
+    const parentIndex = mockParents.findIndex(p => p.id_siswa === editingStudent.id)
+    if (parentIndex >= 0) {
+      mockParents[parentIndex] = {
+        ...mockParents[parentIndex],
+        username: accountData.username,
+        ...(accountData.password ? { password: accountData.password } : {})
+      }
+    }
+
+    setIsAccountDialogOpen(false)
+    setAccountData({ username: "", password: "", confirmPassword: "" })
+    toast.success("Akun orang tua berhasil diperbarui")
   }
 
   return (
@@ -500,6 +544,9 @@ export function StudentManagement() {
                     <Button size="sm" variant="outline" onClick={() => handleEdit(student)}>
                       <Edit className="w-4 h-4" />
                     </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleEditAccount(student)}>
+                      <Key className="w-4 h-4" />
+                    </Button>
                     <Button size="sm" variant="destructive" onClick={() => handleDelete(student.id)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -509,6 +556,50 @@ export function StudentManagement() {
             ))}
           </TableBody>
         </Table>
+        
+        {/* Account Management Dialog */}
+        <Dialog open={isAccountDialogOpen} onOpenChange={setIsAccountDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Pengaturan Akun Orang Tua</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSaveAccount} className="space-y-4">
+              <div>
+                <Label htmlFor="parent-username">Username</Label>
+                <Input
+                  id="parent-username"
+                  value={accountData.username}
+                  onChange={(e) => setAccountData((prev) => ({ ...prev, username: e.target.value }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="parent-password">Password Baru (Kosongkan jika tidak diubah)</Label>
+                <Input
+                  id="parent-password"
+                  type="password"
+                  value={accountData.password}
+                  onChange={(e) => setAccountData((prev) => ({ ...prev, password: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="parent-confirmPassword">Konfirmasi Password</Label>
+                <Input
+                  id="parent-confirmPassword"
+                  type="password"
+                  value={accountData.confirmPassword}
+                  onChange={(e) => setAccountData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsAccountDialogOpen(false)}>
+                  Batal
+                </Button>
+                <Button type="submit">Simpan</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   )

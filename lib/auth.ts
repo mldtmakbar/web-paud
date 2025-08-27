@@ -4,6 +4,8 @@ export interface User {
   email: string
   name: string
   role: "parent" | "teacher" | "admin"
+  username?: string
+  password?: string // Only used in demo/development
   studentIds?: string[] // For parents
 }
 
@@ -12,6 +14,8 @@ const mockUsers: User[] = [
   {
     id: "1",
     email: "parent@example.com",
+    username: "budi",
+    password: "parent123",
     name: "Budi Santoso",
     role: "parent",
     studentIds: ["student1"],
@@ -19,12 +23,16 @@ const mockUsers: User[] = [
   {
     id: "2",
     email: "teacher@example.com",
+    username: "sarah",
+    password: "teacher123",
     name: "Sarah Wijaya",
     role: "teacher",
   },
   {
     id: "3",
     email: "admin@example.com",
+    username: "admin",
+    password: "admin123",
     name: "Admin TK Ceria",
     role: "admin",
   },

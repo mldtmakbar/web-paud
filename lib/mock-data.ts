@@ -13,6 +13,8 @@ export interface Student {
   allergies?: string
   emergencyContact: string
   emergencyPhone: string
+  status: "active" | "inactive"
+  enrollmentDate: string
 }
 
 export interface Payment {
@@ -90,6 +92,8 @@ export interface Parent {
   nomor_telepon_ibu: string
   email_ibu: string
   alamat_rumah: string
+  username?: string
+  password?: string
 }
 
 // Adding PaymentType interface
@@ -135,6 +139,8 @@ export const mockStudents: Student[] = [
     allergies: "Tidak ada",
     emergencyContact: "Ibu Sari Santoso",
     emergencyPhone: "081234567890",
+    status: "active",
+    enrollmentDate: "2024-01-01",
   },
 ]
 
@@ -331,6 +337,7 @@ export const mockParents: Parent[] = [
     nomor_telepon_ibu: "081234567891",
     email_ibu: "sari.santoso@email.com",
     alamat_rumah: "Jl. Merdeka No. 123, Jakarta Selatan",
+    username: "budi_santoso",
   },
 ]
 
