@@ -1,0 +1,119 @@
+// Student Types
+export interface Student {
+  id: string
+  name: string
+  class_id: string | null
+  birth_date: string
+  gender: string
+  blood_type?: string
+  allergies?: string
+  emergency_contact?: string
+  emergency_phone?: string
+  nisn?: string
+  father_name?: string
+  father_occupation?: string
+  father_work_address?: string
+  father_phone?: string
+  father_email?: string
+  mother_name?: string
+  mother_occupation?: string
+  mother_work_address?: string
+  mother_phone?: string
+  mother_email?: string
+  home_address: string
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+// Teacher Types
+export interface Teacher {
+  id: string
+  name: string
+  nip: string
+  gender: string
+  date_of_birth: string
+  address: string
+  phone: string
+  email: string
+  position: string
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+// Class Types
+export interface Class {
+  id: string
+  name: string
+  code: string
+  teacher_id: string
+  school_year: string
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+// Attendance Types
+export interface Attendance {
+  id: string
+  student_id: string
+  date: string
+  status: 'present' | 'absent' | 'sick' | 'permission'
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+// Payment Types
+export interface Payment {
+  id: string
+  student_id: string
+  payment_type_id: string
+  amount: number
+  payment_date: string
+  status: 'paid' | 'pending' | 'overdue'
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface PaymentType {
+  id: string
+  name: string
+  code: string
+  description?: string
+  amount: number
+  category: 'monthly' | 'yearly' | 'one-time'
+  due_date?: string
+  status: 'active' | 'inactive'
+  created_at: string
+  updated_at: string
+}
+
+// Grade Types
+export interface Grade {
+  id: string
+  student_id: string
+  subject: string
+  description: string
+  semester: string
+  created_at: string
+  updated_at: string
+}
+
+// News Types
+export interface News {
+  id: string
+  title: string
+  content: string
+  author: string
+  category: string
+  image?: string
+  excerpt?: string
+  tags?: string
+  featured: boolean
+  status: 'published' | 'draft' | 'archived'
+  created_at: string
+  updated_at: string
+}
