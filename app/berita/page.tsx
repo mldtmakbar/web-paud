@@ -3,69 +3,12 @@ import Footer from "@/components/footer"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, User } from "lucide-react"
+import { getNews } from "@/lib/news"
 
-export default function BeritaPage() {
-  const news = [
-    {
-      id: 1,
-      title: "Penerimaan Siswa Baru Tahun Ajaran 2024/2025",
-      excerpt:
-        "TK Ceria membuka pendaftaran siswa baru untuk tahun ajaran 2024/2025. Dapatkan early bird discount untuk pendaftar awal.",
-      date: "15 Januari 2024",
-      author: "Admin TK Ceria",
-      category: "Pendaftaran",
-      image: "/kindergarten-registration-announcement-colorful.png",
-    },
-    {
-      id: 2,
-      title: "Kegiatan Field Trip ke Kebun Binatang",
-      excerpt:
-        "Siswa-siswi TK Ceria mengunjungi kebun binatang sebagai bagian dari pembelajaran tentang hewan dan alam.",
-      date: "10 Januari 2024",
-      author: "Bu Sarah",
-      category: "Kegiatan",
-      image: "/children-field-trip-to-zoo-educational-activity.png",
-    },
-    {
-      id: 3,
-      title: "Workshop Parenting: Mendidik Anak di Era Digital",
-      excerpt: "TK Ceria mengadakan workshop parenting untuk membantu orang tua dalam mendidik anak di era digital.",
-      date: "5 Januari 2024",
-      author: "Dr. Maya Sari",
-      category: "Workshop",
-      image: "/parenting-workshop-digital-era-presentation.png",
-    },
-    {
-      id: 4,
-      title: "Prestasi Siswa dalam Lomba Mewarnai Tingkat Kota",
-      excerpt:
-        "Selamat kepada siswa-siswi TK Ceria yang meraih juara dalam lomba mewarnai tingkat kota Jakarta Selatan.",
-      date: "28 Desember 2023",
-      author: "Bu Rina",
-      category: "Prestasi",
-      image: "/children-coloring-competition-winners-kindergarten.png",
-    },
-    {
-      id: 5,
-      title: "Perayaan Hari Kartini di TK Ceria",
-      excerpt:
-        "Siswa-siswi TK Ceria merayakan Hari Kartini dengan mengenakan pakaian adat dan belajar tentang kebudayaan Indonesia.",
-      date: "21 April 2023",
-      author: "Bu Dewi",
-      category: "Perayaan",
-      image: "/kartini-day-celebration-kindergarten-traditional-c.png",
-    },
-    {
-      id: 6,
-      title: "Program Baca Tulis Hitung untuk Persiapan SD",
-      excerpt:
-        "TK Ceria meluncurkan program khusus baca tulis hitung untuk mempersiapkan siswa memasuki jenjang sekolah dasar.",
-      date: "15 Maret 2023",
-      author: "Bu Ani",
-      category: "Program",
-      image: "/kindergarten-reading-writing-counting-program-prep.png",
-    },
-  ]
+export const revalidate = 3600 // Revalidate every hour
+
+export default async function BeritaPage() {
+  const news = await getNews(10)
 
   const getCategoryColor = (category: string) => {
     const colors: { [key: string]: string } = {
@@ -118,11 +61,15 @@ export default function BeritaPage() {
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <div className="flex items-center space-x-1">
                       <Calendar className="h-3 w-3" />
-                      <span>{article.date}</span>
+                      <span>{new Date(article.publish_date).toLocaleDateString('id-ID', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <User className="h-3 w-3" />
-                      <span>{article.author}</span>
+                      <span>{article.users?.name || 'Unknown Author'}</span>
                     </div>
                   </div>
                 </CardContent>

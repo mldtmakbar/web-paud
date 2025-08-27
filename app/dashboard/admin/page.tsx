@@ -1,6 +1,7 @@
 "use client"
 
 import { useAuth } from "@/contexts/auth-context"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TeacherManagement } from "@/components/dashboard/teacher-management"
 import { StudentManagement } from "@/components/dashboard/student-management"
@@ -9,36 +10,90 @@ import { PaymentManagement } from "@/components/dashboard/payment-management"
 import { PaymentTypesManagement } from "@/components/dashboard/payment-types-management"
 import { NewsManagement } from "@/components/dashboard/news-management"
 import { Users, GraduationCap, BookOpen, CreditCard, Newspaper } from "lucide-react"
-import { mockStudents, mockClasses, mockPayments, mockNews } from "@/lib/mock-data"
+import { supabase } from "@/lib/supabase"
+import type { LucideIcon } from "lucide-react"
+
+interface Stat {
+  title: string
+  value: string
+  icon: LucideIcon
+  color: string
+}
 
 export default function AdminDashboard() {
   const { user } = useAuth()
 
-  const stats = [
+  const [stats, setStats] = useState<Stat[]>([
     {
       title: "Total Siswa",
-      value: mockStudents.length.toString(),
+      value: "...",
       icon: Users,
       color: "text-blue-600",
     },
     {
       title: "Total Guru",
-      value: mockClasses.length.toString(),
+      value: "...",
       icon: GraduationCap,
       color: "text-green-600",
     },
     {
       title: "Total Kelas",
-      value: mockClasses.length.toString(),
+      value: "...",
       icon: BookOpen,
       color: "text-orange-600",
     }
-  ]
+  ])
+
+  useEffect(() => {
+    async function fetchStats() {
+      if (!user) return
+
+      const { data: studentsData } = await supabase
+        .from('students')
+        .select('id', { count: 'exact', head: true })
+      
+      const { data: teachersData } = await supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'teacher')
+      
+      const { data: classesData } = await supabase
+        .from('classes')
+        .select('id', { count: 'exact', head: true })
+
+      const studentsCount = studentsData?.length ?? 0
+      const teachersCount = teachersData?.length ?? 0
+      const classesCount = classesData?.length ?? 0
+
+      setStats([
+        {
+          title: "Total Siswa",
+          value: studentsCount.toString(),
+          icon: Users,
+          color: "text-blue-600",
+        },
+        {
+          title: "Total Guru",
+          value: teachersCount.toString(),
+          icon: GraduationCap,
+          color: "text-green-600",
+        },
+        {
+          title: "Total Kelas",
+          value: classesCount.toString(),
+          icon: BookOpen,
+          color: "text-orange-600",
+        }
+      ])
+    }
+
+    fetchStats()
+  }, [user])
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Dashboard Super Admin</h1>
+        <h1 className="text-3xl font-bold">Dashboard Admin</h1>
         <p className="text-muted-foreground">
           Selamat datang, {user?.name}! Kelola data guru, siswa, dan kelas TK Ceria.
         </p>

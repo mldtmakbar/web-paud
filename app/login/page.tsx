@@ -102,7 +102,7 @@ export default function LoginPage() {
                   <SelectContent>
                     <SelectItem value="parent">Orang Tua</SelectItem>
                     <SelectItem value="teacher">Guru</SelectItem>
-                    <SelectItem value="admin">Super Admin</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
