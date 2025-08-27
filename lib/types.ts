@@ -47,9 +47,12 @@ export interface Class {
   id: string
   name: string
   code: string
-  teacher_id: string
+  teacher_id: string | null
   school_year: string
-  status: string
+  capacity?: number
+  current_students?: number
+  room?: string
+  status: 'active' | 'inactive'
   created_at: string
   updated_at: string
 }

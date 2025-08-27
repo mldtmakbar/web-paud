@@ -66,6 +66,19 @@ export async function updateStudent(id: string, student: Partial<Student>) {
   return data
 }
 
+export async function deleteStudent(id: string) {
+  const { error } = await supabase
+    .from('students')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error deleting student:', error)
+    throw error
+  }
+  return true
+}
+
 // Teacher Management
 export async function getTeachers() {
   const { data, error } = await supabase
@@ -136,13 +149,16 @@ export async function getClasses() {
 export async function addClass(class_: Omit<Class, 'id' | 'created_at' | 'updated_at'>) {
   const { data, error } = await supabase
     .from('classes')
-    .insert([class_])
+    .insert([{
+      ...class_,
+      teacher_id: class_.teacher_id || null
+    }])
     .select()
     .single()
 
   if (error) {
     console.error('Error adding class:', error)
-    return null
+    throw error
   }
   return data
 }
@@ -160,6 +176,19 @@ export async function updateClass(id: string, class_: Partial<Class>) {
     return null
   }
   return data
+}
+
+export async function deleteClass(id: string) {
+  const { error } = await supabase
+    .from('classes')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error deleting class:', error)
+    throw error
+  }
+  return true
 }
 
 // Payment Management
