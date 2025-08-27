@@ -464,9 +464,24 @@ export function StudentManagement() {
                       {student.status === 'active' ? 'Aktif' : 'Tidak Aktif'}
                     </td>
                     <td className="py-2 px-4">
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(student)}>
-                        Edit
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleEdit(student)}
+                        >
+                          <PenIcon className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 text-red-500 hover:text-red-500 hover:border-red-500"
+                          onClick={() => handleDelete(student.id)}
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

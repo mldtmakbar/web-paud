@@ -19,6 +19,8 @@ import {
   SelectValue 
 } from '@/components/ui/select'
 import { getTeachers, addTeacher, updateTeacher } from '@/lib/database'
+import { deleteTeacher } from '@/lib/teacher-service'
+import { PlusIcon, PenIcon, TrashIcon } from "lucide-react"
 import type { Teacher } from '@/lib/types'
 
 export function TeacherManagement() {
@@ -52,6 +54,19 @@ export function TeacherManagement() {
       console.error('Error loading teachers:', error)
     }
     setIsLoading(false)
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Apakah Anda yakin ingin menghapus data guru ini?')) {
+      return
+    }
+    try {
+      await deleteTeacher(id)
+      await loadTeachers()
+    } catch (error) {
+      console.error('Error deleting teacher:', error)
+      alert('Gagal menghapus data guru')
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -251,9 +266,24 @@ export function TeacherManagement() {
                       {teacher.status === 'active' ? 'Aktif' : 'Tidak Aktif'}
                     </td>
                     <td className="py-2 px-4">
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(teacher)}>
-                        Edit
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleEdit(teacher)}
+                        >
+                          <PenIcon className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 text-red-500 hover:text-red-500 hover:border-red-500"
+                          onClick={() => handleDelete(teacher.id)}
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
