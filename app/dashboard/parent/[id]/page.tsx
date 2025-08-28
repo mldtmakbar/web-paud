@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
-import { CalendarDays, User, GraduationCap, CreditCard, FileText, Heart, Phone, MapPin, AlertCircle, CheckCircle, Clock, XCircle, Edit, Save, X, Eye, EyeOff, Settings } from "lucide-react"
+import { CalendarDays, User, GraduationCap, CreditCard, FileText, Heart, Phone, MapPin, AlertCircle, CheckCircle, Clock, XCircle, Edit, Save, X, Eye, EyeOff, Settings, BookOpen, Calendar } from "lucide-react"
 import { getStudentsByParentId, getAttendance, getPayments, getGrades, getClasses } from "@/lib/db"
 import { Student, Attendance, Payment, Grade, Class } from "@/lib/types"
 import { supabase } from "@/lib/supabase"
@@ -932,9 +932,9 @@ export default function ParentDashboardWithId() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="text-center p-4 bg-blue-50 rounded-lg">
                               <div className="text-2xl font-bold text-blue-600">
-                                {new Set(grades.map(g => g.subject)).size}
+                                {new Set(grades.map(g => g.aspect_name)).size}
                               </div>
-                              <p className="text-sm text-muted-foreground">Mata Pelajaran</p>
+                              <p className="text-sm text-muted-foreground">Aspek Penilaian</p>
                             </div>
                             <div className="text-center p-4 bg-green-50 rounded-lg">
                               <div className="text-2xl font-bold text-green-600">
@@ -946,39 +946,86 @@ export default function ParentDashboardWithId() {
                         </CardContent>
                       </Card>
 
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Detail Penilaian</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-4">
-                            {Array.from(new Set(grades.map(g => g.subject))).map(subject => {
-                              const subjectGrades = grades.filter(g => g.subject === subject)
-                              return (
-                                <div key={subject} className="border rounded-lg p-4">
-                                  <h4 className="font-semibold mb-2">{subject}</h4>
-                                  <div className="space-y-2">
-                                    {subjectGrades.map(grade => (
-                                      <div key={grade.id} className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                          <p className="text-sm font-medium">{grade.description}</p>
-                                          <p className="text-xs text-muted-foreground">{grade.semester}</p>
-                                        </div>
+                      {/* Group by semester */}
+                      {Array.from(new Set(grades.map(g => g.semester_name + ' - ' + g.academic_year))).map(semester => {
+                        const semesterGrades = grades.filter(g => (g.semester_name + ' - ' + g.academic_year) === semester)
+                        return (
+                          <Card key={semester}>
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Calendar className="h-5 w-5" />
+                                {semester}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-4">
+                                {/* Group by aspect */}
+                                {Array.from(new Set(semesterGrades.map(g => g.aspect_name))).map(aspectName => {
+                                  const aspectGrades = semesterGrades.filter(g => g.aspect_name === aspectName)
+                                  const aspectCode = aspectGrades[0]?.aspect_code
+                                  const aspectCategory = aspectGrades[0]?.aspect_category
+                                  
+                                  return (
+                                    <div key={aspectName} className="border rounded-lg p-4">
+                                      <div className="flex items-center gap-2 mb-3">
+                                        <BookOpen className="h-4 w-4" />
+                                        <h4 className="font-semibold">{aspectName}</h4>
+                                        <Badge variant="outline" className="text-xs">{aspectCode}</Badge>
+                                        <Badge variant="secondary" className="text-xs capitalize">
+                                          {aspectCategory?.replace('_', ' ')}
+                                        </Badge>
                                       </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </CardContent>
-                      </Card>
+                                      <div className="space-y-3">
+                                        {aspectGrades.map(grade => (
+                                          <div key={grade.id} className="bg-gray-50 rounded-lg p-3">
+                                            <div className="flex justify-between items-start mb-2">
+                                              <div className="flex items-center gap-2">
+                                                {grade.sub_aspect_name && (
+                                                  <Badge variant="outline" className="text-xs">
+                                                    {grade.sub_aspect_name}
+                                                  </Badge>
+                                                )}
+                                                {grade.score && (
+                                                  <Badge variant="default" className="text-xs">
+                                                    Skor: {grade.score}
+                                                  </Badge>
+                                                )}
+                                              </div>
+                                              <span className="text-xs text-muted-foreground">
+                                                {new Date(grade.assessed_at).toLocaleDateString('id-ID')}
+                                              </span>
+                                            </div>
+                                            <p className="text-sm">{grade.description}</p>
+                                            {grade.notes && (
+                                              <p className="text-xs text-muted-foreground mt-1 italic">
+                                                Catatan: {grade.notes}
+                                              </p>
+                                            )}
+                                            {grade.assessed_by_name && (
+                                              <p className="text-xs text-muted-foreground mt-1">
+                                                Dinilai oleh: {grade.assessed_by_name}
+                                              </p>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )
+                      })}
                     </div>
                   ) : (
                     <Card>
                       <CardContent className="p-8 text-center">
                         <GraduationCap className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                         <p className="text-muted-foreground">Belum ada data nilai</p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Nilai akan muncul setelah guru melakukan penilaian
+                        </p>
                       </CardContent>
                     </Card>
                   )}

@@ -157,15 +157,15 @@ export async function getGrades(studentId: string, semester?: string) {
   console.log('getGrades called with studentId:', studentId, 'semester:', semester)
   
   let query = supabase
-    .from('grades')
+    .from('v_student_grades')
     .select('*')
     .eq('student_id', studentId)
   
   if (semester) {
-    query = query.eq('semester', semester)
+    query = query.eq('semester_name', semester)
   }
 
-  const { data, error } = await query
+  const { data, error } = await query.order('assessed_at', { ascending: false })
   
   if (error) {
     console.error('Error fetching grades:', error)
@@ -380,7 +380,7 @@ export async function updateAssessmentSubAspect(id: string, updates: Partial<Ass
 // ==============================
 export async function getStudentGrades(studentId: string, semesterId?: string) {
   let query = supabase
-    .from('student_grades_view')
+    .from('v_student_grades')
     .select('*')
     .eq('student_id', studentId)
   
@@ -431,7 +431,7 @@ export async function updateGrade(id: string, updates: Partial<Grade>) {
 
 export async function getGradesByClass(classId: string, semesterId?: string) {
   let query = supabase
-    .from('student_grades_view')
+    .from('v_student_grades')
     .select('*')
     .in('student_id', [
       // Subquery to get student IDs from class

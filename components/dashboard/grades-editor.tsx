@@ -17,6 +17,7 @@ import {
   createGrade,
   updateGrade
 } from "@/lib/db"
+import { supabase } from "@/lib/supabase"
 import type { 
   Student, 
   Semester, 
@@ -119,45 +120,82 @@ export function GradesEditor() {
 
   const loadGrades = async () => {
     try {
-      // For now, we'll load all grades and filter on frontend
-      // In production, you might want to create a more specific query
-      const allGrades = await Promise.all(
-        students.map(student => getStudentGrades(student.id, selectedSemester))
-      )
-      
-      const flatGrades = allGrades.flat()
-      const filteredGrades = flatGrades.filter(grade => {
-        if (selectedSubAspect) {
-          return grade.aspect_id === selectedAspect && grade.sub_aspect_id === selectedSubAspect
+      if (!selectedSemester || !selectedAspect || students.length === 0) {
+        setGrades([])
+        return
+      }
+
+      // Create a more specific query to get grades for current selection
+      const gradePromises = students.map(async (student) => {
+        try {
+          const studentGrades = await getStudentGrades(student.id, selectedSemester)
+          return studentGrades.filter(grade => {
+            const matchesAspect = grade.aspect_id === selectedAspect
+            const matchesSubAspect = selectedSubAspect 
+              ? grade.sub_aspect_id === selectedSubAspect 
+              : !grade.sub_aspect_id || grade.sub_aspect_id === null
+            
+            return matchesAspect && matchesSubAspect
+          })
+        } catch (error) {
+          console.error(`Error loading grades for student ${student.id}:`, error)
+          return []
         }
-        return grade.aspect_id === selectedAspect
       })
       
-      setGrades(filteredGrades)
+      const allGrades = await Promise.all(gradePromises)
+      const flatGrades = allGrades.flat()
+      
+      setGrades(flatGrades)
+      
+      // Clear pending changes when loading new data
+      setPendingChanges(new Map())
     } catch (error) {
       console.error('Error loading grades:', error)
+      setGrades([])
     }
+  }
+
+  // Helper function to generate consistent pending key
+  const getPendingKey = (studentId: string) => {
+    return `${studentId}-${selectedAspect}-${selectedSubAspect || 'main'}`
   }
 
   const updatePendingGrade = (studentId: string, description: string) => {
     if (!selectedSemester || !selectedAspect) return
 
-    const key = `${studentId}-${selectedAspect}-${selectedSubAspect || 'main'}`
-    const gradeData: GradeFormData = {
-      student_id: studentId,
-      semester_id: selectedSemester,
-      aspect_id: selectedAspect,
-      sub_aspect_id: selectedSubAspect || undefined,
-      description: description,
-      assessed_at: new Date().toISOString(),
-    }
-
+    const key = getPendingKey(studentId)
+    
+    // Check if this is actually a change from the original value
+    const existingGrade = grades.find(g => 
+      g.student_id === studentId &&
+      g.aspect_id === selectedAspect &&
+      (selectedSubAspect ? g.sub_aspect_id === selectedSubAspect : (!g.sub_aspect_id || g.sub_aspect_id === null))
+    )
+    
+    const originalValue = existingGrade?.description || ""
+    
     const newPendingChanges = new Map(pendingChanges)
-    if (description.trim()) {
-      newPendingChanges.set(key, gradeData)
-    } else {
+    
+    // If the value is the same as original, remove from pending changes
+    if (description === originalValue) {
       newPendingChanges.delete(key)
+    } else {
+      // Only add to pending if there's actual content or it's different from original
+      const gradeData: GradeFormData = {
+        student_id: studentId,
+        semester_id: selectedSemester,
+        aspect_id: selectedAspect,
+        sub_aspect_id: selectedSubAspect || undefined,
+        description: description,
+        assessed_at: new Date().toISOString(),
+      }
+      
+      if (description.trim() || originalValue) {
+        newPendingChanges.set(key, gradeData)
+      }
     }
+    
     setPendingChanges(newPendingChanges)
   }
 
@@ -174,35 +212,63 @@ export function GradesEditor() {
       setSaving(true)
       
       const promises = Array.from(pendingChanges.values()).map(async (gradeData) => {
-        // Check if grade already exists
-        const existingGrade = grades.find(g => 
-          g.student_id === gradeData.student_id &&
-          g.aspect_id === gradeData.aspect_id &&
-          g.sub_aspect_id === gradeData.sub_aspect_id &&
-          g.semester_id === gradeData.semester_id
-        )
+        try {
+          // Check if grade already exists
+          const existingGrade = grades.find(g => 
+            g.student_id === gradeData.student_id &&
+            g.aspect_id === gradeData.aspect_id &&
+            (gradeData.sub_aspect_id 
+              ? g.sub_aspect_id === gradeData.sub_aspect_id 
+              : (!g.sub_aspect_id || g.sub_aspect_id === null)
+            ) &&
+            g.semester_id === gradeData.semester_id
+          )
 
-        if (existingGrade) {
-          return updateGrade(existingGrade.id, gradeData)
-        } else {
-          return createGrade(gradeData)
+          if (existingGrade) {
+            // Update existing grade
+            return await updateGrade(existingGrade.id, {
+              description: gradeData.description,
+              score: gradeData.score,
+              notes: gradeData.notes,
+              assessed_at: gradeData.assessed_at
+            })
+          } else {
+            // Create new grade only if there's content
+            if (gradeData.description.trim()) {
+              return await createGrade(gradeData)
+            }
+          }
+        } catch (error) {
+          console.error('Error saving individual grade:', error)
+          throw error
         }
       })
 
-      await Promise.all(promises)
+      const results = await Promise.allSettled(promises)
+      const failed = results.filter(r => r.status === 'rejected').length
+      const successful = results.filter(r => r.status === 'fulfilled').length
       
-      toast({
-        title: "Berhasil",
-        description: `${pendingChanges.size} nilai berhasil disimpan`,
-      })
+      if (failed > 0) {
+        toast({
+          title: "Peringatan",
+          description: `${successful} nilai berhasil disimpan, ${failed} gagal`,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Berhasil",
+          description: `${successful} nilai berhasil disimpan`,
+        })
+      }
       
+      // Clear pending changes and reload grades
       setPendingChanges(new Map())
       await loadGrades()
     } catch (error) {
       console.error('Error saving grades:', error)
       toast({
         title: "Error",
-        description: "Gagal menyimpan nilai",
+        description: "Terjadi kesalahan saat menyimpan nilai",
         variant: "destructive",
       })
     } finally {
@@ -211,7 +277,7 @@ export function GradesEditor() {
   }
 
   const getGradeValue = (studentId: string) => {
-    const key = `${studentId}-${selectedAspect}-${selectedSubAspect || 'main'}`
+    const key = getPendingKey(studentId)
     
     // Check pending changes first
     const pending = pendingChanges.get(key)
@@ -223,10 +289,22 @@ export function GradesEditor() {
     const existingGrade = grades.find(g => 
       g.student_id === studentId &&
       g.aspect_id === selectedAspect &&
-      (selectedSubAspect ? g.sub_aspect_id === selectedSubAspect : !g.sub_aspect_id)
+      (selectedSubAspect ? g.sub_aspect_id === selectedSubAspect : (!g.sub_aspect_id || g.sub_aspect_id === null))
     )
     
     return existingGrade?.description || ""
+  }
+
+  const hasChanges = (studentId: string, newValue: string) => {
+    const currentValue = getGradeValue(studentId)
+    const existingGrade = grades.find(g => 
+      g.student_id === studentId &&
+      g.aspect_id === selectedAspect &&
+      (selectedSubAspect ? g.sub_aspect_id === selectedSubAspect : (!g.sub_aspect_id || g.sub_aspect_id === null))
+    )
+    
+    const originalValue = existingGrade?.description || ""
+    return newValue !== originalValue
   }
 
   const selectedAspectData = aspects.find(a => a.id === selectedAspect)
@@ -315,17 +393,30 @@ export function GradesEditor() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
                   Penilaian: {selectedAspectData?.name}
                   {selectedSubAspectData && ` - ${selectedSubAspectData.name}`}
+                  {pendingChanges.size > 0 && (
+                    <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">
+                      {pendingChanges.size} perubahan belum disimpan
+                    </span>
+                  )}
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   Semester: {selectedSemesterData?.name} - {selectedSemesterData?.year}
                 </p>
               </div>
-              <Button onClick={saveGrades} disabled={saving || pendingChanges.size === 0}>
+              <Button 
+                onClick={saveGrades} 
+                disabled={saving || pendingChanges.size === 0}
+                className={pendingChanges.size > 0 ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
+              >
                 <Save className="w-4 h-4 mr-2" />
-                {saving ? 'Menyimpan...' : `Simpan ${pendingChanges.size > 0 ? `(${pendingChanges.size})` : ''}`}
+                {saving ? 'Menyimpan...' : 
+                  pendingChanges.size > 0 ? 
+                    `Simpan Perubahan (${pendingChanges.size})` : 
+                    'Simpan'
+                }
               </Button>
             </div>
 
@@ -339,12 +430,25 @@ export function GradesEditor() {
                       <p className="text-sm text-muted-foreground">NISN: {student.nisn}</p>
                     </div>
                   </div>
-                  <Textarea
-                    placeholder={`Masukkan penilaian untuk ${selectedAspectData?.name}${selectedSubAspectData ? ` - ${selectedSubAspectData.name}` : ''}`}
-                    value={getGradeValue(student.id)}
-                    onChange={(e) => updatePendingGrade(student.id, e.target.value)}
-                    className="min-h-[100px]"
-                  />
+                  <div className="relative">
+                    <Textarea
+                      placeholder={`Masukkan penilaian untuk ${selectedAspectData?.name}${selectedSubAspectData ? ` - ${selectedSubAspectData.name}` : ''}`}
+                      value={getGradeValue(student.id)}
+                      onChange={(e) => updatePendingGrade(student.id, e.target.value)}
+                      className={`min-h-[100px] ${
+                        pendingChanges.has(getPendingKey(student.id)) 
+                          ? 'border-yellow-400 bg-yellow-50 focus:ring-yellow-500' 
+                          : ''
+                      }`}
+                    />
+                    {pendingChanges.has(getPendingKey(student.id)) && (
+                      <div className="absolute top-2 right-2 text-yellow-600">
+                        <span className="text-xs font-medium bg-yellow-100 px-2 py-1 rounded">
+                          Belum disimpan
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
