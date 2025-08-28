@@ -15,28 +15,31 @@ export async function getStudents() {
 }
 
 export async function getStudentsByParentId(parentId: string) {
-  const { data, error } = await supabase
-    .from('parent_students')
-    .select('student_id')
-    .eq('parent_id', parentId)
+  console.log('🔍 [DB] getStudentsByParentId called with parentId:', parentId)
   
-  if (error || !data) {
-    console.error('Error fetching student ids:', error)
+  try {
+    // Method 1: Direct query to students table
+    console.log('📋 [DB] Trying direct query to students table...')
+    const { data: allStudents, error: allStudentsError } = await supabase
+      .from('students')
+      .select('*')
+    
+    console.log('📊 [DB] All students in database:', allStudents)
+    console.log('❌ [DB] Query error:', allStudentsError)
+    
+    if (allStudentsError) {
+      console.error('Error querying students table:', allStudentsError)
+      return []
+    }
+
+    // For now, return all students to debug the structure
+    // Later we'll filter by the actual parent relationship
+    return allStudents || []
+    
+  } catch (error) {
+    console.error('Exception in getStudentsByParentId:', error)
     return []
   }
-
-  const studentIds = data.map(ps => ps.student_id)
-  const { data: students, error: studentsError } = await supabase
-    .from('students')
-    .select('*')
-    .in('id', studentIds)
-  
-  if (studentsError) {
-    console.error('Error fetching students:', studentsError)
-    return []
-  }
-
-  return students
 }
 
 // Teachers
@@ -69,6 +72,8 @@ export async function getClasses() {
 
 // Attendance
 export async function getAttendance(studentId: string, startDate?: string, endDate?: string) {
+  console.log('getAttendance called with studentId:', studentId, 'startDate:', startDate, 'endDate:', endDate)
+  
   let query = supabase
     .from('attendance')
     .select('*')
@@ -88,11 +93,14 @@ export async function getAttendance(studentId: string, startDate?: string, endDa
     return []
   }
   
-  return data
+  console.log('Attendance data found:', data)
+  return data || []
 }
 
 // Payments
 export async function getPayments(studentId: string) {
+  console.log('getPayments called with studentId:', studentId)
+  
   const { data, error } = await supabase
     .from('payments')
     .select('*')
@@ -103,7 +111,8 @@ export async function getPayments(studentId: string) {
     return []
   }
   
-  return data
+  console.log('Payments data found:', data)
+  return data || []
 }
 
 // Payment Types
@@ -138,6 +147,8 @@ export async function getNews(limit = 10, offset = 0) {
 
 // Grades
 export async function getGrades(studentId: string, semester?: string) {
+  console.log('getGrades called with studentId:', studentId, 'semester:', semester)
+  
   let query = supabase
     .from('grades')
     .select('*')
@@ -154,5 +165,6 @@ export async function getGrades(studentId: string, semester?: string) {
     return []
   }
   
-  return data
+  console.log('Grades data found:', data)
+  return data || []
 }
