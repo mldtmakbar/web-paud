@@ -15,6 +15,20 @@ export async function getStudents() {
   return data
 }
 
+export async function getStudentsByClass(classId: string) {
+  const { data, error } = await supabase
+    .from('students')
+    .select('*')
+    .eq('class_id', classId)
+    .order('name', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching students by class:', error)
+    return []
+  }
+  return data
+}
+
 export async function addStudent(student: Omit<Student, 'id' | 'created_at' | 'updated_at'>) {
   const { data, error } = await supabase
     .from('students')
@@ -339,7 +353,52 @@ export async function getAttendance(studentId?: string, date?: string) {
   return data
 }
 
-export async function addAttendance(attendance: Omit<Attendance, 'id' | 'created_at'>) {
+export async function getAttendanceByClass(classId: string, date?: string) {
+  // First, get students from the class
+  const { data: students, error: studentsError } = await supabase
+    .from('students')
+    .select('id, name')
+    .eq('class_id', classId)
+
+  if (studentsError) {
+    console.error('Error fetching students for class:', studentsError)
+    return []
+  }
+
+  if (!students || students.length === 0) {
+    return []
+  }
+
+  const studentIds = students.map(s => s.id)
+
+  // Then get attendance for those students
+  let query = supabase
+    .from('attendance')
+    .select('*')
+    .in('student_id', studentIds)
+    .order('date', { ascending: false })
+
+  if (date) {
+    query = query.eq('date', date)
+  }
+
+  const { data: attendanceData, error } = await query
+
+  if (error) {
+    console.error('Error fetching attendance by class:', error)
+    return []
+  }
+
+  // Manually join student names
+  const attendanceWithStudents = attendanceData?.map(att => ({
+    ...att,
+    student_name: students.find(s => s.id === att.student_id)?.name || 'Unknown'
+  })) || []
+
+  return attendanceWithStudents
+}
+
+export async function addAttendance(attendance: Omit<Attendance, 'id' | 'created_at' | 'updated_at'>) {
   const { data, error } = await supabase
     .from('attendance')
     .insert([attendance])
@@ -353,7 +412,7 @@ export async function addAttendance(attendance: Omit<Attendance, 'id' | 'created
   return data
 }
 
-export async function updateAttendance(id: string, attendance: Partial<Attendance>) {
+export async function updateAttendance(id: string, attendance: Partial<Omit<Attendance, 'id' | 'created_at' | 'updated_at'>>) {
   const { data, error } = await supabase
     .from('attendance')
     .update(attendance)

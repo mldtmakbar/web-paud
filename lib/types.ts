@@ -63,7 +63,8 @@ export interface Attendance {
   student_id: string
   date: string
   status: 'present' | 'absent' | 'sick' | 'permission'
-  notes?: string
+  note?: string
+  recorded_by?: string
   created_at: string
   updated_at: string
 }
