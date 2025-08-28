@@ -127,11 +127,78 @@ export interface UserAccount {
 export interface Grade {
   id: string
   student_id: string
-  subject: string
+  semester_id: string
+  aspect_id: string
+  sub_aspect_id?: string
   description: string
-  semester: string
+  score?: string
+  notes?: string
+  assessed_by?: string
+  assessed_at: string
   created_at: string
   updated_at: string
+}
+
+// Semester Types
+export interface Semester {
+  id: string
+  name: string
+  year: string
+  semester_number: number
+  start_date: string
+  end_date: string
+  is_active: boolean
+  is_current: boolean
+  status: 'active' | 'inactive' | 'archived'
+  created_at: string
+  updated_at: string
+  created_by?: string
+}
+
+// Assessment Aspect Types
+export interface AssessmentAspect {
+  id: string
+  name: string
+  code: string
+  description?: string
+  display_order: number
+  is_active: boolean
+  is_required: boolean
+  category: string
+  created_at: string
+  updated_at: string
+  created_by?: string
+}
+
+// Assessment Sub Aspect Types
+export interface AssessmentSubAspect {
+  id: string
+  aspect_id: string
+  name: string
+  code: string
+  description?: string
+  display_order: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+// Student Grades View Type
+export interface StudentGradeView {
+  id: string
+  student_id: string
+  student_name: string
+  semester_name: string
+  academic_year: string
+  aspect_name: string
+  aspect_code: string
+  aspect_category: string
+  sub_aspect_name?: string
+  description: string
+  score?: string
+  notes?: string
+  assessed_at: string
+  assessed_by_name?: string
 }
 
 // News Types
