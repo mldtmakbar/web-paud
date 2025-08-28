@@ -1,360 +1,147 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import StudentCard from "@/components/dashboard/student-card"
-import PaymentStatus from "@/components/dashboard/payment-status"
-import AttendanceStatus from "@/components/dashboard/attendance-status"
-import StudentGrades from "@/components/dashboard/student-grades"
-import AuthGuard from "@/components/auth-guard"
-import {
-  getStudentsByParentId,
-  getPaymentsByStudentId,
-  getAttendanceByStudentId,
-  getGradesByStudentId,
-  getParentByStudentId,
-  type Student,
-} from "@/lib/mock-data"
-import { exportStudentReportToPDF } from "@/lib/pdf-export"
-import { Download, User, CreditCard, Calendar, BookOpen, Phone, Mail, MapPin, Users } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 export default function ParentDashboard() {
-  const { user } = useAuth()
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
-  const [students, setStudents] = useState<Student[]>([])
-
-  useEffect(() => {
-    if (user) {
-      console.log("User logged in:", user)
-      console.log("User ID:", user.id)
-      const userStudents = getStudentsByParentId(user.id)
-      console.log("Found students:", userStudents)
-      setStudents(userStudents)
-      if (userStudents.length > 0) {
-        setSelectedStudent(userStudents[0])
-      }
-    }
-  }, [user])
+  const { user, loading } = useAuth()
+  const router = useRouter()
 
   // Debug: Log current state
+  console.log("ParentDashboard rendered")
   console.log("Current user:", user)
-  console.log("Current students:", students)
-  console.log("Selected student:", selectedStudent)
+  console.log("Loading state:", loading)
 
-  // Fallback: If no students found, show some sample data for testing
-  const fallbackStudents = students.length === 0 ? [
-    {
-      id: "student1",
-      name: "Andi Santoso",
-      class: "TK A",
-      dateOfBirth: "2019-05-15",
-      parentId: "1",
-      photo: "/placeholder-user.jpg",
-      nisn: "1234567890",
-      gender: "L" as const,
-      address: "Jl. Merdeka No. 123, Jakarta Selatan",
-      bloodType: "O",
-      allergies: "Tidak ada",
-      emergencyContact: "Ibu Sari Santoso",
-      emergencyPhone: "081234567890",
-      status: "active" as const,
-      enrollmentDate: "2024-01-01",
+  useEffect(() => {
+    // If user is loaded and is a parent, redirect to the correct URL with ID
+    if (!loading && user && user.role === 'parent') {
+      console.log("Redirecting to correct parent dashboard URL with ID")
+      console.log("User ID for redirect:", user.id)
+      const redirectUrl = `/dashboard/parent/${user.id}`
+      console.log("Redirect URL:", redirectUrl)
+      router.replace(redirectUrl)
     }
-  ] : students
+  }, [user, loading, router])
 
-  const displayStudents = students.length > 0 ? students : fallbackStudents
-  const displaySelectedStudent = selectedStudent || fallbackStudents[0]
-
-  const handleExportPDF = () => {
-    if (!selectedStudent) return
-
-    const payments = getPaymentsByStudentId(selectedStudent.id)
-    const attendance = getAttendanceByStudentId(selectedStudent.id)
-    const grades = getGradesByStudentId(selectedStudent.id)
-
-    exportStudentReportToPDF({
-      student: selectedStudent,
-      payments,
-      attendance,
-      grades,
-    })
+  // Show loading state
+  if (loading) {
+    console.log("Showing loading state")
+    return (
+      <div style={{ 
+        padding: '20px', 
+        textAlign: 'center',
+        minHeight: '400px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '4px solid #f3f3f3',
+          borderTop: '4px solid #007bff',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <h2 style={{ marginTop: '20px', color: '#333' }}>Memuat Dashboard...</h2>
+        <p style={{ color: '#666', marginTop: '10px' }}>Mohon tunggu sebentar</p>
+        <style jsx>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    )
   }
 
+  // Show error if no user
   if (!user) {
+    console.log("No user found, redirecting to login")
+    router.push('/login')
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Memuat data pengguna...</p>
-        </div>
+      <div style={{ 
+        padding: '20px', 
+        textAlign: 'center',
+        minHeight: '400px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}>
+        <h2 style={{ color: '#dc3545' }}>Tidak ada user yang login</h2>
+        <p style={{ color: '#666' }}>Mengalihkan ke halaman login...</p>
       </div>
     )
   }
 
-  // Show message when no students found
-  if (students.length === 0) {
+  // Check if user role is parent
+  if (user.role !== 'parent') {
+    console.log("User role is not parent:", user.role)
+    router.push(`/dashboard/${user.role}`)
     return (
-      <AuthGuard requiredRole="parent">
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground font-serif">Dashboard Orang Tua</h1>
-            <p className="text-muted-foreground">Selamat datang, {user?.name}</p>
-          </div>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-12">
-                <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                  <User className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-medium text-foreground mb-2">
-                  Tidak ada data siswa yang ditemukan
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  Belum ada siswa yang terdaftar untuk akun orang tua ini.
-                </p>
-                <div className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
-                  <p className="font-medium mb-2">Debug Info:</p>
-                  <p>User ID: {user.id}</p>
-                  <p>User Role: {user.role}</p>
-                  <p>Total Students in System: {getStudentsByParentId("1").length + getStudentsByParentId("2").length}</p>
-                  <p>Fallback Students: {fallbackStudents.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </AuthGuard>
+      <div style={{ 
+        padding: '20px', 
+        textAlign: 'center',
+        minHeight: '400px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}>
+        <h2 style={{ color: '#dc3545' }}>Akses Ditolak</h2>
+        <p style={{ color: '#666' }}>Role user tidak sesuai untuk halaman ini</p>
+        <p style={{ color: '#666' }}>Mengalihkan ke dashboard yang sesuai...</p>
+      </div>
     )
   }
 
-  if (!selectedStudent) {
-    return (
-      <AuthGuard requiredRole="parent">
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Tidak ada data siswa yang ditemukan.</p>
-        </div>
-      </AuthGuard>
-    )
-  }
-
-  const payments = getPaymentsByStudentId(displaySelectedStudent.id)
-  const attendance = getAttendanceByStudentId(displaySelectedStudent.id)
-  const grades = getGradesByStudentId(displaySelectedStudent.id)
-  const parentData = getParentByStudentId(displaySelectedStudent.id)
-
+  // Show redirect message
   return (
-    <AuthGuard requiredRole="parent">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground font-serif">Dashboard Orang Tua</h1>
-            <p className="text-muted-foreground">Selamat datang, {user?.name}</p>
-          </div>
-          <Button onClick={handleExportPDF} className="bg-primary hover:bg-primary/90">
-            <Download className="mr-2 h-4 w-4" />
-            Export PDF
-          </Button>
-        </div>
-
-        {/* Student Selection */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Pilih Siswa</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayStudents.map((student) => (
-              <StudentCard
-                key={student.id}
-                student={student}
-                isSelected={displaySelectedStudent?.id === student.id}
-                onClick={() => setSelectedStudent(student)}
-              />
-            ))}
-          </div>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <User className="h-5 w-5" />
-              <span>Profil Siswa Lengkap</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Student Information */}
-              <div className="space-y-6">
-                <div className="flex items-center space-x-6">
-                  <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                    <img
-                      src={selectedStudent.photo || "/placeholder.svg?height=96&width=96"}
-                      alt={selectedStudent.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-semibold">{displaySelectedStudent.name}</h3>
-                    <p className="text-muted-foreground">NISN: {displaySelectedStudent.nisn}</p>
-                    <p className="text-muted-foreground">Kelas: {displaySelectedStudent.class}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Tanggal Lahir</p>
-                      <p className="text-base">{new Date(displaySelectedStudent.dateOfBirth).toLocaleDateString("id-ID")}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Jenis Kelamin</p>
-                      <p className="text-base">{displaySelectedStudent.gender === "L" ? "Laki-laki" : "Perempuan"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Golongan Darah</p>
-                      <p className="text-base">{displaySelectedStudent.bloodType}</p>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Usia</p>
-                      <p className="text-base">
-                        {new Date().getFullYear() - new Date(displaySelectedStudent.dateOfBirth).getFullYear()} tahun
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Alergi</p>
-                      <p className="text-base">{displaySelectedStudent.allergies}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Kontak Darurat</p>
-                      <p className="text-base">{displaySelectedStudent.emergencyContact}</p>
-                      <p className="text-sm text-muted-foreground">{displaySelectedStudent.emergencyPhone}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Alamat</p>
-                  <div className="flex items-start space-x-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
-                    <p className="text-base">{displaySelectedStudent.address}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Parent Information */}
-              {parentData && (
-                <div className="space-y-6">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Users className="h-5 w-5" />
-                    <h4 className="text-lg font-semibold">Data Orang Tua</h4>
-                  </div>
-
-                  {/* Father Information */}
-                  <div className="space-y-3">
-                    <h5 className="font-medium text-primary">Data Ayah</h5>
-                    <div className="grid grid-cols-1 gap-3 pl-4 border-l-2 border-blue-200">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Nama</p>
-                        <p className="text-base">{parentData.nama_ayah}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Pekerjaan</p>
-                        <p className="text-base">{parentData.pekerjaan_ayah}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Alamat Pekerjaan</p>
-                        <p className="text-base">{parentData.alamat_pekerjaan_ayah}</p>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{parentData.nomor_telepon_ayah}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{parentData.email_ayah}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Mother Information */}
-                  <div className="space-y-3">
-                    <h5 className="font-medium text-pink-600">Data Ibu</h5>
-                    <div className="grid grid-cols-1 gap-3 pl-4 border-l-2 border-pink-200">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Nama</p>
-                        <p className="text-base">{parentData.nama_ibu}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Pekerjaan</p>
-                        <p className="text-base">{parentData.pekerjaan_ibu}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Alamat Pekerjaan</p>
-                        <p className="text-base">{parentData.alamat_pekerjaan_ibu}</p>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{parentData.nomor_telepon_ibu}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{parentData.email_ibu}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Home Address */}
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-2">Alamat Rumah</p>
-                    <div className="flex items-start space-x-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
-                      <p className="text-base">{parentData.alamat_rumah}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Tabs for different sections */}
-        <Tabs defaultValue="payments" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="payments" className="flex items-center space-x-2">
-              <CreditCard className="h-4 w-4" />
-              <span>Pembayaran</span>
-            </TabsTrigger>
-            <TabsTrigger value="attendance" className="flex items-center space-x-2">
-              <Calendar className="h-4 w-4" />
-              <span>Kehadiran</span>
-            </TabsTrigger>
-            <TabsTrigger value="grades" className="flex items-center space-x-2">
-              <BookOpen className="h-4 w-4" />
-              <span>Nilai</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="payments">
-            <PaymentStatus payments={payments} />
-          </TabsContent>
-
-          <TabsContent value="attendance">
-            <AttendanceStatus attendance={attendance} />
-          </TabsContent>
-
-          <TabsContent value="grades">
-            <StudentGrades grades={grades} />
-          </TabsContent>
-        </Tabs>
+    <div style={{ 
+      padding: '20px', 
+      textAlign: 'center',
+      minHeight: '400px',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center'
+    }}>
+      <div style={{
+        width: '60px',
+        height: '60px',
+        border: '4px solid #f3f3f3',
+        borderTop: '4px solid #007bff',
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite',
+        marginBottom: '20px'
+      }}></div>
+      <h2 style={{ color: '#333', marginBottom: '10px' }}>Mengalihkan...</h2>
+      <p style={{ color: '#666', marginBottom: '20px' }}>
+        Mengalihkan ke dashboard yang benar untuk user: {user.name}
+      </p>
+      <div style={{ 
+        padding: '15px',
+        backgroundColor: '#e3f2fd',
+        borderRadius: '8px',
+        border: '1px solid #2196f3',
+        maxWidth: '400px'
+      }}>
+        <p style={{ margin: '0', fontSize: '14px', color: '#1976d2' }}>
+          <strong>Info:</strong> Halaman ini akan otomatis mengalihkan ke <br/>
+          <code style={{ backgroundColor: '#f5f5f5', padding: '2px 4px', borderRadius: '3px' }}>
+            /dashboard/parent/{user.id}
+          </code>
+        </p>
       </div>
-    </AuthGuard>
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
   )
 }

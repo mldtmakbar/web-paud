@@ -77,7 +77,12 @@ export async function authenticate(
 ): Promise<User | null> {
   try {
     // Use real auth with Supabase
+    console.log('Using database authentication')
     return loginWithCredentials(usernameOrEmail, password, role)
+    
+    // Use mock auth for testing - uncomment when database issues
+    // console.log('Using mock authentication for testing')
+    // return authenticateMock(usernameOrEmail, password, role)
   } catch (error) {
     console.error('Authentication error:', error)
     return null
@@ -107,13 +112,17 @@ export async function logout(): Promise<void> {
   await supabase.auth.signOut()
 }
 
-export function isAuthorized(user: User | null, requiredRole: string): boolean {
+export function isAuthorized(user: User | null, requiredRole: string | string[]): boolean {
   if (!user) return false
   
   // Admin can access everything
   if (user.role === 'admin') return true
   
   // Check if user role matches required role
+  if (Array.isArray(requiredRole)) {
+    return requiredRole.includes(user.role)
+  }
+  
   return user.role === requiredRole
 }
 
@@ -129,36 +138,45 @@ export async function loginWithCredentials(
   role?: string
 ): Promise<User | null> {
   try {
+    console.log('LoginWithCredentials called with:', { identifier, role, passwordLength: password.length })
+    
     // First, try to find user in user_accounts table (for parents and teachers)
+    console.log('Searching in user_accounts table...')
     const { data: accountData, error: accountError } = await supabase
       .from('user_accounts')
       .select('*')
       .eq('email', identifier)
       .single()
 
+    console.log('User accounts query result:', { accountData, accountError })
+
     if (accountData) {
+      console.log('User found in user_accounts table:', accountData)
       // User found in user_accounts table
       // Verify password
       if (accountData.password !== password) {
-        console.error('Invalid password')
+        console.error('Invalid password for user:', identifier)
         return null
       }
 
       // Verify role if specified
       if (role && accountData.role !== role) {
-        console.error('Invalid role')
+        console.error('Invalid role. Expected:', role, 'Got:', accountData.role)
         return null
       }
 
       // Get additional user data based on role
       let userData: any = null
       if (accountData.role === 'parent') {
+        console.log('Getting parent data for user_id:', accountData.user_id)
         // For parent accounts, user_id points to the student they have access to
         const { data: studentData, error: studentError } = await supabase
           .from('students')
           .select('*')
           .eq('id', accountData.user_id)
           .single()
+        
+        console.log('Student data query result:', { studentData, studentError })
         
         if (studentData) {
           userData = {
@@ -174,12 +192,15 @@ export async function loginWithCredentials(
           }
         }
       } else if (accountData.role === 'teacher') {
+        console.log('Getting teacher data for user_id:', accountData.user_id)
         // Get teacher data
         const { data: teacherData, error: teacherError } = await supabase
           .from('teachers')
           .select('*')
           .eq('id', accountData.user_id)
           .single()
+        
+        console.log('Teacher data query result:', { teacherData, teacherError })
         
         if (teacherData) {
           userData = {
@@ -200,17 +221,21 @@ export async function loginWithCredentials(
         return null
       }
 
+      console.log('Login successful, returning user data:', userData)
       const user: User = userData
       storeUser(user)
       return user
     }
 
     // If not found in user_accounts, try the old users table (for admin accounts)
+    console.log('User not found in user_accounts, trying users table...')
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('*')
       .eq('email', identifier)
       .single()
+
+    console.log('Users table query result:', { userData, userError })
 
     if (userError || !userData) {
       console.error('User not found in both tables:', userError?.message)
@@ -219,13 +244,13 @@ export async function loginWithCredentials(
 
     // Verify password for old users table
     if (userData.password_hash !== password) {
-      console.error('Invalid password')
+      console.error('Invalid password for user in users table')
       return null
     }
 
     // Verify role if specified
     if (role && userData.role !== role) {
-      console.error('Invalid role')
+      console.error('Invalid role for user in users table')
       return null
     }
 
@@ -252,6 +277,7 @@ export async function loginWithCredentials(
     }
 
     // Store user in local storage
+    console.log('Login successful for users table, returning user data:', user)
     storeUser(user)
     return user
 

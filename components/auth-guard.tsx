@@ -20,6 +20,7 @@ export default function AuthGuard({ children, requiredRole, redirectTo = "/login
   useEffect(() => {
     if (!loading) {
       if (!user) {
+        console.log('AuthGuard: No user, redirecting to:', redirectTo)
         router.push(redirectTo)
         return
       }
@@ -31,6 +32,7 @@ export default function AuthGuard({ children, requiredRole, redirectTo = "/login
           teacher: "/dashboard/teacher",
           admin: "/dashboard/admin",
         }
+        console.log('AuthGuard: Unauthorized role, redirecting to:', dashboardRoutes[user.role])
         router.push(dashboardRoutes[user.role])
         return
       }

@@ -26,7 +26,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string, role: string): Promise<boolean> => {
     try {
+      console.log("Auth context login attempt:", { email, role })
+      
+      // Use real database authentication
       const authenticatedUser = await authenticate(email, password, role)
+      console.log("Auth context - authenticated user:", authenticatedUser)
 
       if (authenticatedUser) {
         setUser(authenticatedUser)
@@ -36,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return false
     } catch (error) {
-      console.error("Login error:", error)
+      console.error("Login error in auth context:", error)
       return false
     }
   }

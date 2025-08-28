@@ -41,7 +41,7 @@ export default function TeacherDashboard() {
       }}></div>
       <h2 style={{ color: '#333', marginBottom: '10px' }}>Mengalihkan...</h2>
       <p style={{ color: '#666', marginBottom: '20px' }}>
-        Mengalihkan ke dashboard teacher yang benar...
+        Mengalihkan ke dashboard guru yang benar...
       </p>
       <style jsx>{`
         @keyframes spin {

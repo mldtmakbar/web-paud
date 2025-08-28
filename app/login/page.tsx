@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Eye, EyeOff, ArrowLeft, AlertCircle } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
+import { authenticate } from "@/lib/auth"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function LoginPage() {
@@ -24,7 +25,7 @@ export default function LoginPage() {
     role: "",
   })
 
-  const { login } = useAuth()
+  const { login, user } = useAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,15 +62,23 @@ export default function LoginPage() {
       console.log("Login result:", success)
 
       if (success) {
-        // Redirect based on role
-        const dashboardRoutes = {
-          parent: "/dashboard/parent",
-          teacher: "/dashboard/teacher",
-          admin: "/dashboard/admin",
+        // Get the authenticated user directly from auth library
+        const authenticatedUser = await authenticate(formData.email, formData.password, formData.role)
+        console.log("Authenticated user:", authenticatedUser)
+        
+        if (authenticatedUser) {
+          // Redirect based on role with user ID from authentication response
+          const dashboardRoutes = {
+            parent: `/dashboard/parent/${authenticatedUser.id}`,
+            teacher: `/dashboard/teacher/${authenticatedUser.id}`,
+            admin: `/dashboard/admin/${authenticatedUser.id}`,
+          }
+          const redirectPath = dashboardRoutes[formData.role as keyof typeof dashboardRoutes]
+          console.log("Redirecting to:", redirectPath)
+          router.push(redirectPath)
+        } else {
+          setError("Gagal mendapatkan data user setelah login")
         }
-        const redirectPath = dashboardRoutes[formData.role as keyof typeof dashboardRoutes]
-        console.log("Redirecting to:", redirectPath)
-        router.push(redirectPath)
       } else {
         setError("Email, password, atau role tidak valid. Silakan coba lagi.")
       }
