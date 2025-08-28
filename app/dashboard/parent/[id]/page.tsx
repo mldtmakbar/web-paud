@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { toast } from "@/components/ui/use-toast"
 import { CalendarDays, User, GraduationCap, CreditCard, FileText, Heart, Phone, MapPin, AlertCircle, CheckCircle, Clock, XCircle, Edit, Save, X, Eye, EyeOff, Settings } from "lucide-react"
 import { getStudentsByParentId, getAttendance, getPayments, getGrades, getClasses } from "@/lib/db"
 import { Student, Attendance, Payment, Grade, Class } from "@/lib/types"
@@ -172,9 +173,17 @@ export default function ParentDashboardWithId() {
 
         if (error) {
           console.error('Error updating profile:', error)
-          alert('Gagal menyimpan profil. Silakan coba lagi.')
+          toast({
+            title: "Error",
+            description: "Gagal menyimpan profil. Silakan coba lagi.",
+            variant: "destructive",
+          })
         } else {
-          alert('Profil berhasil disimpan!')
+          toast({
+            title: "Berhasil",
+            description: "Profil berhasil disimpan!",
+            variant: "default",
+          })
           setIsEditingProfile(false)
           // Reload data to reflect changes
           await loadStudentsData()
@@ -182,18 +191,30 @@ export default function ParentDashboardWithId() {
       }
     } catch (error) {
       console.error('Error saving profile:', error)
-      alert('Terjadi kesalahan saat menyimpan profil.')
+      toast({
+        title: "Error",
+        description: "Terjadi kesalahan saat menyimpan profil.",
+        variant: "destructive",
+      })
     }
   }
 
   const handleChangePassword = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('Password baru dan konfirmasi password tidak sama!')
+      toast({
+        title: "Error",
+        description: "Password baru dan konfirmasi password tidak sama!",
+        variant: "destructive",
+      })
       return
     }
 
     if (passwordData.newPassword.length < 6) {
-      alert('Password baru minimal 6 karakter!')
+      toast({
+        title: "Error",
+        description: "Password baru minimal 6 karakter!",
+        variant: "destructive",
+      })
       return
     }
 
@@ -209,9 +230,17 @@ export default function ParentDashboardWithId() {
 
       if (error) {
         console.error('Error updating password:', error)
-        alert('Gagal mengubah password. Silakan coba lagi.')
+        toast({
+          title: "Error",
+          description: "Gagal mengubah password. Silakan coba lagi.",
+          variant: "destructive",
+        })
       } else {
-        alert('Password berhasil diubah!')
+        toast({
+          title: "Berhasil",
+          description: "Password berhasil diubah!",
+          variant: "default",
+        })
         setIsEditingPassword(false)
         setPasswordData({
           currentPassword: '',
@@ -221,7 +250,11 @@ export default function ParentDashboardWithId() {
       }
     } catch (error) {
       console.error('Error changing password:', error)
-      alert('Terjadi kesalahan saat mengubah password.')
+      toast({
+        title: "Error",
+        description: "Terjadi kesalahan saat mengubah password.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -256,18 +289,6 @@ export default function ParentDashboardWithId() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Dashboard Orang Tua</h1>
           <p className="text-muted-foreground">Selamat datang, {user.name}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src="/placeholder-user.jpg" alt={user.name} />
-            <AvatarFallback>
-              {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="text-sm">
-            <p className="font-medium">{user.name}</p>
-            <p className="text-muted-foreground">{user.email}</p>
-          </div>
         </div>
       </div>
 
