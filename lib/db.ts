@@ -153,7 +153,7 @@ export async function getNews(limit = 10, offset = 0) {
 }
 
 // Grades
-export async function getGrades(studentId: string, semester?: string) {
+export async function getGrades(studentId: string, semester?: string): Promise<StudentGradeView[]> {
   console.log('getGrades called with studentId:', studentId, 'semester:', semester)
   
   let query = supabase
@@ -378,7 +378,7 @@ export async function updateAssessmentSubAspect(id: string, updates: Partial<Ass
 // ==============================
 // ENHANCED GRADE FUNCTIONS
 // ==============================
-export async function getStudentGrades(studentId: string, semesterId?: string) {
+export async function getStudentGrades(studentId: string, semesterId?: string): Promise<StudentGradeView[]> {
   let query = supabase
     .from('v_student_grades')
     .select('*')
@@ -392,6 +392,34 @@ export async function getStudentGrades(studentId: string, semesterId?: string) {
   
   if (error) {
     console.error('Error fetching student grades:', error)
+    return []
+  }
+  
+  return data || []
+}
+
+// Function to get basic grades for editing (from grades table)
+export async function getBasicGrades(studentId?: string, semesterId?: string, aspectId?: string): Promise<Grade[]> {
+  let query = supabase
+    .from('grades')
+    .select('*')
+  
+  if (studentId) {
+    query = query.eq('student_id', studentId)
+  }
+  
+  if (semesterId) {
+    query = query.eq('semester_id', semesterId)
+  }
+  
+  if (aspectId) {
+    query = query.eq('aspect_id', aspectId)
+  }
+  
+  const { data, error } = await query.order('assessed_at', { ascending: false })
+  
+  if (error) {
+    console.error('Error fetching basic grades:', error)
     return []
   }
   
@@ -429,7 +457,7 @@ export async function updateGrade(id: string, updates: Partial<Grade>) {
   return data
 }
 
-export async function getGradesByClass(classId: string, semesterId?: string) {
+export async function getGradesByClass(classId: string, semesterId?: string): Promise<StudentGradeView[]> {
   let query = supabase
     .from('v_student_grades')
     .select('*')

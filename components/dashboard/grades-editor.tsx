@@ -13,7 +13,7 @@ import {
   getSemesters, 
   getAssessmentAspects,
   getAssessmentSubAspects,
-  getStudentGrades,
+  getBasicGrades,
   createGrade,
   updateGrade
 } from "@/lib/db"
@@ -125,28 +125,19 @@ export function GradesEditor() {
         return
       }
 
-      // Create a more specific query to get grades for current selection
-      const gradePromises = students.map(async (student) => {
-        try {
-          const studentGrades = await getStudentGrades(student.id, selectedSemester)
-          return studentGrades.filter(grade => {
-            const matchesAspect = grade.aspect_id === selectedAspect
-            const matchesSubAspect = selectedSubAspect 
-              ? grade.sub_aspect_id === selectedSubAspect 
-              : !grade.sub_aspect_id || grade.sub_aspect_id === null
-            
-            return matchesAspect && matchesSubAspect
-          })
-        } catch (error) {
-          console.error(`Error loading grades for student ${student.id}:`, error)
-          return []
-        }
+      // Get all grades for the selected semester and aspect
+      const allGrades = await getBasicGrades(undefined, selectedSemester, selectedAspect)
+      
+      // Filter by sub-aspect if selected
+      const filteredGrades = allGrades.filter(grade => {
+        const matchesSubAspect = selectedSubAspect 
+          ? grade.sub_aspect_id === selectedSubAspect 
+          : !grade.sub_aspect_id || grade.sub_aspect_id === null
+        
+        return matchesSubAspect
       })
       
-      const allGrades = await Promise.all(gradePromises)
-      const flatGrades = allGrades.flat()
-      
-      setGrades(flatGrades)
+      setGrades(filteredGrades)
       
       // Clear pending changes when loading new data
       setPendingChanges(new Map())

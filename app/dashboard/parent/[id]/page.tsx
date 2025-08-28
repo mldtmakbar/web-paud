@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
 import { CalendarDays, User, GraduationCap, CreditCard, FileText, Heart, Phone, MapPin, AlertCircle, CheckCircle, Clock, XCircle, Edit, Save, X, Eye, EyeOff, Settings, BookOpen, Calendar } from "lucide-react"
 import { getStudentsByParentId, getAttendance, getPayments, getGrades, getClasses } from "@/lib/db"
-import { Student, Attendance, Payment, Grade, Class } from "@/lib/types"
+import { Student, Attendance, Payment, Grade, Class, StudentGradeView } from "@/lib/types"
 import { supabase } from "@/lib/supabase"
 
 export default function ParentDashboardWithId() {
@@ -29,7 +29,7 @@ export default function ParentDashboardWithId() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [attendance, setAttendance] = useState<Attendance[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
-  const [grades, setGrades] = useState<Grade[]>([])
+  const [grades, setGrades] = useState<StudentGradeView[]>([])
   const [classes, setClasses] = useState<Class[]>([])
   const [dataLoading, setDataLoading] = useState(true)
   
