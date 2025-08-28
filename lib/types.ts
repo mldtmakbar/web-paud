@@ -137,14 +137,18 @@ export interface Grade {
 export interface News {
   id: string
   title: string
+  excerpt: string
   content: string
-  author: string
-  category: string
-  image?: string
-  excerpt?: string
-  tags?: string
-  featured: boolean
+  author_id: string
+  publish_date: string
   status: 'published' | 'draft' | 'archived'
+  category: string
+  image: string
+  tags: string
+  featured: boolean
   created_at: string
   updated_at: string
+  users?: {
+    name: string
+  }
 }

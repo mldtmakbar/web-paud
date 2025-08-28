@@ -1,24 +1,5 @@
 import { supabase } from './supabase'
-
-export interface News {
-  id: string
-  title: string
-  excerpt: string
-  content: string
-  author_id: string
-  publish_date: string
-  status: string
-  category: string
-  image: string
-  tags: string
-  views: number
-  featured: boolean
-  created_at: string
-  updated_at: string
-  users?: {
-    name: string
-  }
-}
+import { News } from './types'
 
 export async function getNews(
   limit: number = 10,
@@ -78,5 +59,92 @@ export async function getNewsById(id: string): Promise<News | null> {
   } catch (error) {
     console.error('Get news by id error:', error)
     return null
+  }
+}
+
+export async function addNews(news: {
+  title: string
+  excerpt: string
+  content: string
+  author_id: string
+  category: string
+  image?: string
+  tags?: string
+  featured?: boolean
+  status?: string
+  publish_date?: string
+}): Promise<News | null> {
+  try {
+    const { data, error } = await supabase
+      .from('news')
+      .insert([{
+        ...news,
+        featured: news.featured || false,
+        status: news.status || 'draft',
+        publish_date: news.publish_date || new Date().toISOString(),
+        image: news.image || '',
+        tags: news.tags || ''
+      }])
+      .select(`
+        *,
+        users!news_author_id_fkey (
+          name
+        )
+      `)
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Add news error:', error)
+    return null
+  }
+}
+
+export async function updateNews(id: string, news: {
+  title?: string
+  excerpt?: string
+  content?: string
+  author_id?: string
+  category?: string
+  image?: string
+  tags?: string
+  featured?: boolean
+  status?: string
+  publish_date?: string
+}): Promise<News | null> {
+  try {
+    const { data, error } = await supabase
+      .from('news')
+      .update(news)
+      .eq('id', id)
+      .select(`
+        *,
+        users!news_author_id_fkey (
+          name
+        )
+      `)
+      .single()
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Update news error:', error)
+    return null
+  }
+}
+
+export async function deleteNews(id: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('news')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+    return true
+  } catch (error) {
+    console.error('Delete news error:', error)
+    return false
   }
 }
