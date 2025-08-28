@@ -73,12 +73,27 @@ export interface Payment {
   id: string
   student_id: string
   payment_type_id: string
+  semester: string
+  academic_year: string
   amount: number
-  payment_date: string
+  discount: number
+  scholarship: number
+  total_due: number
   status: 'paid' | 'pending' | 'overdue'
-  notes?: string
+  due_date?: string
+  payment_date?: string
   created_at: string
   updated_at: string
+  // Relationship data
+  students?: {
+    name: string
+    nisn?: string
+  }
+  payment_types?: {
+    name: string
+    code: string
+    category: string
+  }
 }
 
 export interface PaymentType {
@@ -86,10 +101,10 @@ export interface PaymentType {
   name: string
   code: string
   description?: string
-  amount: number
-  category: 'monthly' | 'yearly' | 'one-time'
-  due_date?: string
-  status: 'active' | 'inactive'
+  default_amount: number
+  is_active: boolean
+  category: 'Wajib' | 'Opsional' | 'Potongan'
+  display_order: number
   created_at: string
   updated_at: string
 }

@@ -2,30 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { 
-  Dialog,
-  DialogContent, 
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger 
-} from '@/components/ui/dialog'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue 
-} from '@/components/ui/select'
-import { 
-  getPayments,
-  getPaymentTypes,
-  getStudents,
-  addPayment,
-  updatePayment
-} from '@/lib/database'
-import type { Payment, PaymentType, Student } from '@/lib/types'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { PlusIcon, PenIcon, TrashIcon } from "lucide-react"
+import { Payment, PaymentType, Student } from '@/lib/types'
+import { getPayments, addPayment, updatePayment, deletePayment, getPaymentTypes, getStudents } from '@/lib/database'
 
 export function PaymentManagement() {
   const [payments, setPayments] = useState<Payment[]>([])
@@ -38,19 +22,22 @@ export function PaymentManagement() {
   const [formData, setFormData] = useState({
     student_id: '',
     payment_type_id: '',
+    semester: 'Semester 1',
+    academic_year: '2024/2025',
     amount: '',
+    discount: '0',
+    scholarship: '0',
     status: 'pending',
-    payment_date: new Date().toISOString().split('T')[0],
-    notes: ''
+    due_date: new Date().toISOString().split('T')[0]
   })
 
   useEffect(() => {
     loadData()
   }, [])
 
-  async function loadData() {
-    setIsLoading(true)
+  const loadData = async () => {
     try {
+      setIsLoading(true)
       const [paymentsData, paymentTypesData, studentsData] = await Promise.all([
         getPayments(),
         getPaymentTypes(),
@@ -61,81 +48,119 @@ export function PaymentManagement() {
       setStudents(studentsData)
     } catch (error) {
       console.error('Error loading data:', error)
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  const handleSubmit = async () => {
     try {
       const paymentData = {
-        ...formData,
-        amount: parseFloat(formData.amount)
+        student_id: formData.student_id,
+        payment_type_id: formData.payment_type_id,
+        semester: formData.semester,
+        academic_year: formData.academic_year,
+        amount: parseFloat(formData.amount),
+        discount: parseFloat(formData.discount),
+        scholarship: parseFloat(formData.scholarship),
+        status: formData.status,
+        due_date: formData.due_date
       }
-      
+
       if (selectedPayment) {
         await updatePayment(selectedPayment.id, paymentData)
       } else {
         await addPayment(paymentData)
       }
+      
       await loadData()
       setIsAddDialogOpen(false)
       setIsEditDialogOpen(false)
-      setSelectedPayment(null)
-      setFormData({
-        student_id: '',
-        payment_type_id: '',
-        amount: '',
-        status: 'pending',
-        payment_date: new Date().toISOString().split('T')[0],
-        notes: ''
-      })
+      resetForm()
     } catch (error) {
       console.error('Error saving payment:', error)
     }
   }
 
-  function handleEdit(payment: Payment) {
+  const resetForm = () => {
+    setFormData({
+      student_id: '',
+      payment_type_id: '',
+      semester: 'Semester 1',
+      academic_year: '2024/2025',
+      amount: '',
+      discount: '0',
+      scholarship: '0',
+      status: 'pending',
+      due_date: new Date().toISOString().split('T')[0]
+    })
+    setSelectedPayment(null)
+  }
+
+  const handleEdit = (payment: Payment) => {
     setSelectedPayment(payment)
     setFormData({
       student_id: payment.student_id,
       payment_type_id: payment.payment_type_id,
+      semester: payment.semester,
+      academic_year: payment.academic_year,
       amount: payment.amount.toString(),
+      discount: payment.discount.toString(),
+      scholarship: payment.scholarship.toString(),
       status: payment.status,
-      payment_date: new Date(payment.payment_date).toISOString().split('T')[0],
-      notes: payment.notes || ''
+      due_date: payment.due_date || new Date().toISOString().split('T')[0]
     })
     setIsEditDialogOpen(true)
   }
 
+  const handleDelete = async (id: string) => {
+    if (confirm('Apakah Anda yakin ingin menghapus pembayaran ini?')) {
+      try {
+        await deletePayment(id)
+        await loadData()
+      } catch (error) {
+        console.error('Error deleting payment:', error)
+      }
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    const statusStyles = {
+      paid: 'bg-green-100 text-green-800',
+      pending: 'bg-yellow-100 text-yellow-800',
+      overdue: 'bg-red-100 text-red-800'
+    }
+    return `px-2 py-1 rounded-full text-xs font-medium ${statusStyles[status as keyof typeof statusStyles] || 'bg-gray-100 text-gray-800'}`
+  }
+
   if (isLoading) {
-    return <div>Loading...</div>
+    return <div className="p-6">Loading...</div>
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Manajemen Pembayaran</h2>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Manajemen Pembayaran</h1>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button>Tambah Pembayaran</Button>
+            <Button onClick={resetForm}>
+              <PlusIcon className="w-4 h-4 mr-2" />
+              Tambah Pembayaran
+            </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Tambah Pembayaran Baru</DialogTitle>
+              <DialogTitle>Tambah Pembayaran</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
+            <div className="space-y-4">
+              <div>
                 <Label htmlFor="student_id">Siswa</Label>
-                <Select
-                  value={formData.student_id}
-                  onValueChange={value => setFormData({...formData, student_id: value})}
-                >
+                <Select value={formData.student_id} onValueChange={value => setFormData({...formData, student_id: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih siswa" />
                   </SelectTrigger>
                   <SelectContent>
-                    {students.map((student) => (
+                    {students.map(student => (
                       <SelectItem key={student.id} value={student.id}>
                         {student.name}
                       </SelectItem>
@@ -143,149 +168,189 @@ export function PaymentManagement() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+
+              <div>
                 <Label htmlFor="payment_type_id">Jenis Pembayaran</Label>
-                <Select
-                  value={formData.payment_type_id}
-                  onValueChange={value => setFormData({...formData, payment_type_id: value})}
-                >
+                <Select value={formData.payment_type_id} onValueChange={value => setFormData({...formData, payment_type_id: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih jenis pembayaran" />
                   </SelectTrigger>
                   <SelectContent>
-                    {paymentTypes.map((type) => (
+                    {paymentTypes.map(type => (
                       <SelectItem key={type.id} value={type.id}>
-                        {type.name}
+                        {type.name} - {type.category}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+
+              <div>
+                <Label htmlFor="semester">Semester</Label>
+                <Select value={formData.semester} onValueChange={value => setFormData({...formData, semester: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Semester 1">Semester 1</SelectItem>
+                    <SelectItem value="Semester 2">Semester 2</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="academic_year">Tahun Ajaran</Label>
+                <Input
+                  id="academic_year"
+                  value={formData.academic_year}
+                  onChange={e => setFormData({...formData, academic_year: e.target.value})}
+                  placeholder="2024/2025"
+                />
+              </div>
+
+              <div>
                 <Label htmlFor="amount">Jumlah</Label>
                 <Input
                   id="amount"
                   type="number"
                   value={formData.amount}
                   onChange={e => setFormData({...formData, amount: e.target.value})}
-                  required
+                  placeholder="0"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="payment_date">Tanggal Pembayaran</Label>
+
+              <div>
+                <Label htmlFor="discount">Diskon</Label>
                 <Input
-                  id="payment_date"
-                  type="date"
-                  value={formData.payment_date}
-                  onChange={e => setFormData({...formData, payment_date: e.target.value})}
-                  required
+                  id="discount"
+                  type="number"
+                  value={formData.discount}
+                  onChange={e => setFormData({...formData, discount: e.target.value})}
+                  placeholder="0"
                 />
               </div>
-              <div className="space-y-2">
+
+              <div>
+                <Label htmlFor="scholarship">Beasiswa</Label>
+                <Input
+                  id="scholarship"
+                  type="number"
+                  value={formData.scholarship}
+                  onChange={e => setFormData({...formData, scholarship: e.target.value})}
+                  placeholder="0"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="due_date">Jatuh Tempo</Label>
+                <Input
+                  id="due_date"
+                  type="date"
+                  value={formData.due_date}
+                  onChange={e => setFormData({...formData, due_date: e.target.value})}
+                />
+              </div>
+
+              <div>
                 <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={value => setFormData({...formData, status: value})}
-                >
+                <Select value={formData.status} onValueChange={value => setFormData({...formData, status: value})}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Pilih status" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="paid">Lunas</SelectItem>
-                    <SelectItem value="cancelled">Batal</SelectItem>
+                    <SelectItem value="overdue">Terlambat</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="notes">Catatan</Label>
-                <Input
-                  id="notes"
-                  value={formData.notes}
-                  onChange={e => setFormData({...formData, notes: e.target.value})}
-                />
-              </div>
-              <Button type="submit">
-                {selectedPayment ? 'Update' : 'Simpan'}
+
+              <Button onClick={handleSubmit} className="w-full">
+                Simpan
               </Button>
-            </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid gap-4">
-        {payments.length === 0 ? (
-          <div className="text-center py-8">
-            <p>Belum ada data pembayaran</p>
-          </div>
-        ) : (
-          <div className="rounded-md border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="py-2 px-4 text-left">Tanggal</th>
-                  <th className="py-2 px-4 text-left">Siswa</th>
-                  <th className="py-2 px-4 text-left">Jenis Pembayaran</th>
-                  <th className="py-2 px-4 text-left">Jumlah</th>
-                  <th className="py-2 px-4 text-left">Status</th>
-                  <th className="py-2 px-4 text-left">Catatan</th>
-                  <th className="py-2 px-4 text-left">Aksi</th>
+      <Card>
+        <CardHeader>
+          <CardTitle>Daftar Pembayaran</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-4">Siswa</th>
+                  <th className="text-left py-2 px-4">Jenis Pembayaran</th>
+                  <th className="text-left py-2 px-4">Semester</th>
+                  <th className="text-left py-2 px-4">Tahun Ajaran</th>
+                  <th className="text-left py-2 px-4">Jumlah</th>
+                  <th className="text-left py-2 px-4">Total Bayar</th>
+                  <th className="text-left py-2 px-4">Status</th>
+                  <th className="text-left py-2 px-4">Jatuh Tempo</th>
+                  <th className="text-left py-2 px-4">Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {payments.map((payment) => {
-                  const student = students.find(s => s.id === payment.student_id)
-                  const paymentType = paymentTypes.find(t => t.id === payment.payment_type_id)
-                  return (
-                    <tr key={payment.id} className="border-t">
-                      <td className="py-2 px-4">
-                        {new Date(payment.payment_date).toLocaleDateString('id-ID')}
-                      </td>
-                      <td className="py-2 px-4">{student?.name || '-'}</td>
-                      <td className="py-2 px-4">{paymentType?.name || '-'}</td>
-                      <td className="py-2 px-4">
-                        {new Intl.NumberFormat('id-ID', {
-                          style: 'currency',
-                          currency: 'IDR'
-                        }).format(payment.amount)}
-                      </td>
-                      <td className="py-2 px-4">
-                        {payment.status === 'paid' ? 'Lunas' : 
-                         payment.status === 'pending' ? 'Pending' : 'Batal'}
-                      </td>
-                      <td className="py-2 px-4">{payment.notes || '-'}</td>
-                      <td className="py-2 px-4">
-                        <Button variant="outline" size="sm" onClick={() => handleEdit(payment)}>
-                          Edit
+                {payments.map(payment => (
+                  <tr key={payment.id} className="border-b">
+                    <td className="py-2 px-4">{payment.students?.name || '-'}</td>
+                    <td className="py-2 px-4">{payment.payment_types?.name || '-'}</td>
+                    <td className="py-2 px-4">{payment.semester}</td>
+                    <td className="py-2 px-4">{payment.academic_year}</td>
+                    <td className="py-2 px-4">Rp {payment.amount.toLocaleString('id-ID')}</td>
+                    <td className="py-2 px-4">Rp {payment.total_due.toLocaleString('id-ID')}</td>
+                    <td className="py-2 px-4">
+                      <span className={getStatusBadge(payment.status)}>
+                        {payment.status === 'paid' ? 'Lunas' : payment.status === 'pending' ? 'Pending' : 'Terlambat'}
+                      </span>
+                    </td>
+                    <td className="py-2 px-4">
+                      {payment.due_date ? new Date(payment.due_date).toLocaleDateString('id-ID') : '-'}
+                    </td>
+                    <td className="py-2 px-4">
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEdit(payment)}
+                        >
+                          <PenIcon className="w-4 h-4" />
                         </Button>
-                      </td>
-                    </tr>
-                  )
-                })}
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleDelete(payment.id)}
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
 
+      {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Data Pembayaran</DialogTitle>
+            <DialogTitle>Edit Pembayaran</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Same form fields as add dialog */}
-            <div className="space-y-2">
+          <div className="space-y-4">
+            <div>
               <Label htmlFor="student_id">Siswa</Label>
-              <Select
-                value={formData.student_id}
-                onValueChange={value => setFormData({...formData, student_id: value})}
-              >
+              <Select value={formData.student_id} onValueChange={value => setFormData({...formData, student_id: value})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih siswa" />
                 </SelectTrigger>
                 <SelectContent>
-                  {students.map((student) => (
+                  {students.map(student => (
                     <SelectItem key={student.id} value={student.id}>
                       {student.name}
                     </SelectItem>
@@ -293,70 +358,107 @@ export function PaymentManagement() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+
+            <div>
               <Label htmlFor="payment_type_id">Jenis Pembayaran</Label>
-              <Select
-                value={formData.payment_type_id}
-                onValueChange={value => setFormData({...formData, payment_type_id: value})}
-              >
+              <Select value={formData.payment_type_id} onValueChange={value => setFormData({...formData, payment_type_id: value})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih jenis pembayaran" />
                 </SelectTrigger>
                 <SelectContent>
-                  {paymentTypes.map((type) => (
+                  {paymentTypes.map(type => (
                     <SelectItem key={type.id} value={type.id}>
-                      {type.name}
+                      {type.name} - {type.category}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+
+            <div>
+              <Label htmlFor="semester">Semester</Label>
+              <Select value={formData.semester} onValueChange={value => setFormData({...formData, semester: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Semester 1">Semester 1</SelectItem>
+                  <SelectItem value="Semester 2">Semester 2</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="academic_year">Tahun Ajaran</Label>
+              <Input
+                id="academic_year"
+                value={formData.academic_year}
+                onChange={e => setFormData({...formData, academic_year: e.target.value})}
+                placeholder="2024/2025"
+              />
+            </div>
+
+            <div>
               <Label htmlFor="amount">Jumlah</Label>
               <Input
                 id="amount"
                 type="number"
                 value={formData.amount}
                 onChange={e => setFormData({...formData, amount: e.target.value})}
-                required
+                placeholder="0"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="payment_date">Tanggal Pembayaran</Label>
+
+            <div>
+              <Label htmlFor="discount">Diskon</Label>
               <Input
-                id="payment_date"
-                type="date"
-                value={formData.payment_date}
-                onChange={e => setFormData({...formData, payment_date: e.target.value})}
-                required
+                id="discount"
+                type="number"
+                value={formData.discount}
+                onChange={e => setFormData({...formData, discount: e.target.value})}
+                placeholder="0"
               />
             </div>
-            <div className="space-y-2">
+
+            <div>
+              <Label htmlFor="scholarship">Beasiswa</Label>
+              <Input
+                id="scholarship"
+                type="number"
+                value={formData.scholarship}
+                onChange={e => setFormData({...formData, scholarship: e.target.value})}
+                placeholder="0"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="due_date">Jatuh Tempo</Label>
+              <Input
+                id="due_date"
+                type="date"
+                value={formData.due_date}
+                onChange={e => setFormData({...formData, due_date: e.target.value})}
+              />
+            </div>
+
+            <div>
               <Label htmlFor="status">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={value => setFormData({...formData, status: value})}
-              >
+              <Select value={formData.status} onValueChange={value => setFormData({...formData, status: value})}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih status" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="paid">Lunas</SelectItem>
-                  <SelectItem value="cancelled">Batal</SelectItem>
+                  <SelectItem value="overdue">Terlambat</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="notes">Catatan</Label>
-              <Input
-                id="notes"
-                value={formData.notes}
-                onChange={e => setFormData({...formData, notes: e.target.value})}
-              />
-            </div>
-            <Button type="submit">Update</Button>
-          </form>
+
+            <Button onClick={handleSubmit} className="w-full">
+              Update
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,13 +12,31 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Plus, Edit, Trash2, Settings, ArrowUp, ArrowDown } from "lucide-react"
-import { mockPaymentTypes, type PaymentType } from "@/lib/mock-data"
+import { getPaymentTypes, addPaymentType, updatePaymentType, deletePaymentType } from "@/lib/database"
+import { PaymentType } from "@/lib/types"
 
 export function PaymentTypesManagement() {
-  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>(mockPaymentTypes)
+  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingType, setEditingType] = useState<PaymentType | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+
+  useEffect(() => {
+    loadPaymentTypes()
+  }, [])
+
+  const loadPaymentTypes = async () => {
+    setIsLoading(true)
+    try {
+      const data = await getPaymentTypes()
+      setPaymentTypes(data || [])
+    } catch (error) {
+      console.error('Error loading payment types:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const filteredTypes = paymentTypes.filter(
     (type) =>
@@ -26,26 +44,69 @@ export function PaymentTypesManagement() {
       type.code.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const handleAddType = (typeData: Omit<PaymentType, "id">) => {
-    const newType: PaymentType = {
-      ...typeData,
-      id: `pt-${Date.now()}`,
+  const handleAddType = async (typeData: {
+    name: string
+    code: string
+    description?: string
+    default_amount: number
+    is_active: boolean
+    category: string
+    display_order?: number
+  }) => {
+    try {
+      const newType = await addPaymentType(typeData)
+      if (newType) {
+        setPaymentTypes([...paymentTypes, newType])
+        setIsAddDialogOpen(false)
+      }
+    } catch (error) {
+      console.error('Error adding payment type:', error)
     }
-    setPaymentTypes([...paymentTypes, newType])
-    setIsAddDialogOpen(false)
   }
 
-  const handleEditType = (typeData: PaymentType) => {
-    setPaymentTypes(paymentTypes.map((t) => (t.id === typeData.id ? typeData : t)))
-    setEditingType(null)
+  const handleEditType = async (typeData: PaymentType) => {
+    try {
+      const updatedType = await updatePaymentType(typeData.id, {
+        name: typeData.name,
+        code: typeData.code,
+        description: typeData.description,
+        default_amount: typeData.default_amount,
+        is_active: typeData.is_active,
+        category: typeData.category,
+        display_order: typeData.display_order
+      })
+      if (updatedType) {
+        setPaymentTypes(paymentTypes.map((t) => (t.id === typeData.id ? updatedType : t)))
+        setEditingType(null)
+      }
+    } catch (error) {
+      console.error('Error updating payment type:', error)
+    }
   }
 
-  const handleDeleteType = (id: string) => {
-    setPaymentTypes(paymentTypes.filter((t) => t.id !== id))
+  const handleDeleteType = async (id: string) => {
+    try {
+      const success = await deletePaymentType(id)
+      if (success) {
+        setPaymentTypes(paymentTypes.filter((t) => t.id !== id))
+      }
+    } catch (error) {
+      console.error('Error deleting payment type:', error)
+    }
   }
 
-  const handleToggleActive = (id: string) => {
-    setPaymentTypes(paymentTypes.map((t) => (t.id === id ? { ...t, isActive: !t.isActive } : t)))
+  const handleToggleActive = async (id: string) => {
+    const type = paymentTypes.find(t => t.id === id)
+    if (type) {
+      try {
+        const updatedType = await updatePaymentType(id, { is_active: !type.is_active })
+        if (updatedType) {
+          setPaymentTypes(paymentTypes.map((t) => (t.id === id ? updatedType : t)))
+        }
+      } catch (error) {
+        console.error('Error toggling payment type status:', error)
+      }
+    }
   }
 
   const moveType = (id: string, direction: "up" | "down") => {
@@ -58,9 +119,9 @@ export function PaymentTypesManagement() {
     if (targetIndex >= 0 && targetIndex < newTypes.length) {
       ;[newTypes[currentIndex], newTypes[targetIndex]] = [newTypes[targetIndex], newTypes[currentIndex]]
 
-      // Update order numbers
+      // Update display_order numbers
       newTypes.forEach((type, index) => {
-        type.order = index + 1
+        type.display_order = index + 1
       })
 
       setPaymentTypes(newTypes)
@@ -69,11 +130,11 @@ export function PaymentTypesManagement() {
 
   const getCategoryBadge = (category: PaymentType["category"]) => {
     switch (category) {
-      case "mandatory":
+      case "Wajib":
         return <Badge className="bg-red-100 text-red-800">Wajib</Badge>
-      case "optional":
+      case "Opsional":
         return <Badge className="bg-blue-100 text-blue-800">Opsional</Badge>
-      case "discount":
+      case "Potongan":
         return <Badge className="bg-green-100 text-green-800">Potongan</Badge>
     }
   }
@@ -143,7 +204,7 @@ export function PaymentTypesManagement() {
                 <TableRow key={type.id}>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <span className="font-medium">{type.order}</span>
+                      <span className="font-medium">{type.display_order}</span>
                       <div className="flex flex-col gap-1">
                         <Button
                           variant="ghost"
@@ -171,9 +232,9 @@ export function PaymentTypesManagement() {
                     <code className="bg-muted px-2 py-1 rounded text-sm">{type.code}</code>
                   </TableCell>
                   <TableCell>{getCategoryBadge(type.category)}</TableCell>
-                  <TableCell>{formatCurrency(type.defaultAmount)}</TableCell>
+                  <TableCell>{formatCurrency(type.default_amount)}</TableCell>
                   <TableCell>
-                    <Switch checked={type.isActive} onCheckedChange={() => handleToggleActive(type.id)} />
+                    <Switch checked={type.is_active} onCheckedChange={() => handleToggleActive(type.id)} />
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -221,10 +282,10 @@ function PaymentTypeForm({ initialData, onSubmit, isEdit = false }: PaymentTypeF
     name: initialData?.name || "",
     code: initialData?.code || "",
     description: initialData?.description || "",
-    defaultAmount: initialData?.defaultAmount || 0,
-    isActive: initialData?.isActive ?? true,
-    category: initialData?.category || "mandatory",
-    order: initialData?.order || 1,
+    default_amount: initialData?.default_amount || 0,
+    is_active: initialData?.is_active ?? true,
+    category: initialData?.category || "Wajib",
+    display_order: initialData?.display_order || 1,
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -270,9 +331,9 @@ function PaymentTypeForm({ initialData, onSubmit, isEdit = false }: PaymentTypeF
               <SelectValue placeholder="Pilih kategori" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="mandatory">Wajib</SelectItem>
-              <SelectItem value="optional">Opsional</SelectItem>
-              <SelectItem value="discount">Potongan</SelectItem>
+              <SelectItem value="Wajib">Wajib</SelectItem>
+              <SelectItem value="Opsional">Opsional</SelectItem>
+              <SelectItem value="Potongan">Potongan</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -282,8 +343,8 @@ function PaymentTypeForm({ initialData, onSubmit, isEdit = false }: PaymentTypeF
           <Input
             id="defaultAmount"
             type="number"
-            value={formData.defaultAmount}
-            onChange={(e) => setFormData({ ...formData, defaultAmount: Number(e.target.value) })}
+            value={formData.default_amount}
+            onChange={(e) => setFormData({ ...formData, default_amount: Number(e.target.value) })}
             placeholder="0"
           />
         </div>
@@ -302,8 +363,8 @@ function PaymentTypeForm({ initialData, onSubmit, isEdit = false }: PaymentTypeF
       <div className="flex items-center space-x-2">
         <Switch
           id="isActive"
-          checked={formData.isActive}
-          onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+          checked={formData.is_active}
+          onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
         />
         <Label htmlFor="isActive">Aktif</Label>
       </div>

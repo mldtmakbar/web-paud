@@ -214,7 +214,11 @@ export async function deleteClass(id: string) {
 export async function getPayments(studentId?: string) {
   let query = supabase
     .from('payments')
-    .select('*, students(name)')
+    .select(`
+      *,
+      students(name, nisn),
+      payment_types(name, code, category)
+    `)
     .order('created_at', { ascending: false })
 
   if (studentId) {
@@ -230,11 +234,33 @@ export async function getPayments(studentId?: string) {
   return data
 }
 
-export async function addPayment(payment: Omit<Payment, 'id' | 'created_at' | 'updated_at'>) {
+export async function addPayment(payment: {
+  student_id: string
+  payment_type_id: string
+  semester: string
+  academic_year: string
+  amount: number
+  discount?: number
+  scholarship?: number
+  status?: string
+  due_date?: string
+}) {
+  // Don't calculate total_due - let database handle it as a generated column
+  const paymentData = {
+    ...payment,
+    discount: payment.discount || 0,
+    scholarship: payment.scholarship || 0,
+    status: payment.status || 'pending'
+  }
+
   const { data, error } = await supabase
     .from('payments')
-    .insert([payment])
-    .select()
+    .insert([paymentData])
+    .select(`
+      *,
+      students(name, nisn),
+      payment_types(name, code, category)
+    `)
     .single()
 
   if (error) {
@@ -244,12 +270,29 @@ export async function addPayment(payment: Omit<Payment, 'id' | 'created_at' | 'u
   return data
 }
 
-export async function updatePayment(id: string, payment: Partial<Payment>) {
+export async function updatePayment(id: string, payment: {
+  student_id?: string
+  payment_type_id?: string
+  semester?: string
+  academic_year?: string
+  amount?: number
+  discount?: number
+  scholarship?: number
+  status?: string
+  due_date?: string
+}) {
+  // Don't calculate total_due - let database handle it as a generated column
+  let updateData: any = { ...payment }
+
   const { data, error } = await supabase
     .from('payments')
-    .update(payment)
+    .update(updateData)
     .eq('id', id)
-    .select()
+    .select(`
+      *,
+      students(name, nisn),
+      payment_types(name, code, category)
+    `)
     .single()
 
   if (error) {
@@ -257,6 +300,19 @@ export async function updatePayment(id: string, payment: Partial<Payment>) {
     return null
   }
   return data
+}
+
+export async function deletePayment(id: string) {
+  const { error } = await supabase
+    .from('payments')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error deleting payment:', error)
+    return false
+  }
+  return true
 }
 
 // Attendance Management
@@ -317,13 +373,71 @@ export async function getPaymentTypes() {
   const { data, error } = await supabase
     .from('payment_types')
     .select('*')
-    .order('name', { ascending: true })
+    .order('display_order', { ascending: true })
 
   if (error) {
     console.error('Error fetching payment types:', error)
     return []
   }
   return data
+}
+
+export async function addPaymentType(paymentType: {
+  name: string
+  code: string
+  description?: string
+  default_amount: number
+  is_active: boolean
+  category: string
+  display_order?: number
+}) {
+  const { data, error } = await supabase
+    .from('payment_types')
+    .insert([paymentType])
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error adding payment type:', error)
+    return null
+  }
+  return data
+}
+
+export async function updatePaymentType(id: string, paymentType: {
+  name?: string
+  code?: string
+  description?: string
+  default_amount?: number
+  is_active?: boolean
+  category?: string
+  display_order?: number
+}) {
+  const { data, error } = await supabase
+    .from('payment_types')
+    .update(paymentType)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating payment type:', error)
+    return null
+  }
+  return data
+}
+
+export async function deletePaymentType(id: string) {
+  const { error } = await supabase
+    .from('payment_types')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error deleting payment type:', error)
+    return false
+  }
+  return true
 }
 
 // Account Management
