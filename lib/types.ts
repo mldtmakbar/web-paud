@@ -94,6 +94,19 @@ export interface PaymentType {
   updated_at: string
 }
 
+// Account Types
+export interface UserAccount {
+  id: string
+  email: string
+  password: string
+  role: 'parent' | 'teacher'
+  user_id: string
+  user_name: string
+  status: 'active' | 'inactive'
+  created_at: string
+  updated_at: string
+}
+
 // Grade Types
 export interface Grade {
   id: string

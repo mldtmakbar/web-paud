@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import type { Student, Class } from '@/lib/types'
+import type { Student, Class, UserAccount } from '@/lib/types'
 import { Button } from '@/components/ui/button'
-import { Pen as PenIcon, Trash as TrashIcon, PlusIcon, EyeIcon } from 'lucide-react'
+import { Pen as PenIcon, Trash as TrashIcon, PlusIcon, EyeIcon, SearchIcon, FilterIcon, UserIcon, KeyIcon } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -24,16 +24,27 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import { getStudents, addStudent, updateStudent, deleteStudent, getClasses } from '@/lib/database'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { getStudents, addStudent, updateStudent, deleteStudent, getClasses, getAccounts, addAccount, updateAccount, deleteAccount } from '@/lib/database'
 
 export function StudentManagement() {
   const [students, setStudents] = useState<Student[]>([])
+  const [filteredStudents, setFilteredStudents] = useState<Student[]>([])
   const [classes, setClasses] = useState<Class[]>([])
+  const [accounts, setAccounts] = useState<UserAccount[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
+  
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [genderFilter, setGenderFilter] = useState<string>('all')
+  const [classFilter, setClassFilter] = useState<string>('all')
   
   const initialFormData = {
     name: '',
@@ -65,18 +76,55 @@ export function StudentManagement() {
     loadData()
   }, [])
 
+  useEffect(() => {
+    filterStudents()
+  }, [students, searchTerm, statusFilter, genderFilter, classFilter])
+
   async function loadData() {
     try {
-      const [studentsData, classesData] = await Promise.all([
+      const [studentsData, classesData, accountsData] = await Promise.all([
         getStudents(),
-        getClasses()
+        getClasses(),
+        getAccounts()
       ])
       setStudents(studentsData)
       setClasses(classesData)
+      setAccounts(accountsData)
     } catch (error) {
       console.error('Error loading data:', error)
     }
     setIsLoading(false)
+  }
+
+  function filterStudents() {
+    let filtered = students
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(student => 
+        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.nisn?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.father_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.mother_name?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(student => student.status === statusFilter)
+    }
+
+    // Gender filter
+    if (genderFilter !== 'all') {
+      filtered = filtered.filter(student => student.gender === genderFilter)
+    }
+
+    // Class filter
+    if (classFilter !== 'all') {
+      filtered = filtered.filter(student => student.class_id === classFilter)
+    }
+
+    setFilteredStudents(filtered)
   }
 
   async function loadStudents() {
@@ -166,97 +214,271 @@ export function StudentManagement() {
     setIsAddDialogOpen(false)
     setIsEditDialogOpen(false)
     setIsViewDialogOpen(false)
+    setIsAccountDialogOpen(false)
     setSelectedStudent(null)
     setFormData(initialFormData)
   }
 
+  // Account management functions
+  function handleAccount(student: Student) {
+    setSelectedStudent(student)
+    setIsAccountDialogOpen(true)
+  }
+
+  async function handleCreateAccount(email: string, password: string) {
+    if (!selectedStudent) return
+
+    const accountData = {
+      email,
+      password,
+      role: 'parent' as const,
+      user_id: selectedStudent.id,
+      user_name: `Ayah / Ibu - ${selectedStudent.name}`,
+      status: 'active' as const
+    }
+
+    try {
+      const result = await addAccount(accountData)
+      if (result) {
+        await loadData() // Reload data to get updated accounts
+        setIsAccountDialogOpen(false)
+      }
+    } catch (error) {
+      console.error('Error creating account:', error)
+    }
+  }
+
   if (isLoading) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Memuat data...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Manajemen Siswa</h2>
-        <Button onClick={handleAdd}>
-          <PlusIcon className="h-4 w-4 mr-2" />
-          Tambah Siswa
-        </Button>
-      </div>
+    <Card className="shadow-lg">
+      <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b">
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="text-2xl font-bold text-gray-900">Manajemen Siswa</CardTitle>
+            <p className="text-sm text-gray-600 mt-1">
+              Kelola data siswa dan informasi peserta didik
+            </p>
+          </div>
+          <Button onClick={handleAdd} className="bg-gray-900 hover:bg-gray-800">
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Tambah Siswa
+          </Button>
+        </div>
+      </CardHeader>
 
-      <div className="grid gap-4">
-        {students.length === 0 ? (
-          <div className="text-center py-8">
-            <p>Belum ada data siswa</p>
-          </div>
-        ) : (
-          <div className="rounded-md border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="py-2 px-4 text-left">NISN</th>
-                  <th className="py-2 px-4 text-left">Nama</th>
-                  <th className="py-2 px-4 text-left">Jenis Kelamin</th>
-                  <th className="py-2 px-4 text-left">Tanggal Lahir</th>
-                  <th className="py-2 px-4 text-left">Status</th>
-                  <th className="py-2 px-4 text-left">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((student) => (
-                  <tr key={student.id} className="border-t">
-                    <td className="py-2 px-4">{student.nisn}</td>
-                    <td className="py-2 px-4">{student.name}</td>
-                    <td className="py-2 px-4">
-                      {student.gender === 'L' ? 'Laki-laki' : 'Perempuan'}
-                    </td>
-                    <td className="py-2 px-4">
-                      {new Date(student.birth_date).toLocaleDateString('id-ID')}
-                    </td>
-                    <td className="py-2 px-4">
-                      {student.status === 'active' ? 'Aktif' : 'Tidak Aktif'}
-                    </td>
-                    <td className="py-2 px-4">
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleView(student)}
-                        >
-                          <EyeIcon className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleEdit(student)}
-                        >
-                          <PenIcon className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-500 hover:border-red-500"
-                          onClick={() => handleDelete(student.id)}
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
+      <CardContent className="p-6">
+        {/* Search and Filter Section */}
+        <div className="mb-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {/* Search */}
+            <div className="relative">
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari siswa..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <FilterIcon className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="active">Aktif</SelectItem>
+                <SelectItem value="inactive">Tidak Aktif</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Gender Filter */}
+            <Select value={genderFilter} onValueChange={setGenderFilter}>
+              <SelectTrigger>
+                <FilterIcon className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter Gender" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Gender</SelectItem>
+                <SelectItem value="L">Laki-laki</SelectItem>
+                <SelectItem value="P">Perempuan</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Class Filter */}
+            <Select value={classFilter} onValueChange={setClassFilter}>
+              <SelectTrigger>
+                <FilterIcon className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter Kelas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Kelas</SelectItem>
+                {classes.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </SelectItem>
                 ))}
-              </tbody>
-            </table>
+              </SelectContent>
+            </Select>
+
+            {/* Results Count */}
+            <div className="flex items-center justify-end">
+              <Badge variant="secondary" className="text-sm">
+                {filteredStudents.length} dari {students.length} siswa
+              </Badge>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+
+                {/* Table */}
+        <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            {filteredStudents.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <SearchIcon className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {searchTerm || statusFilter !== 'all' || genderFilter !== 'all' || classFilter !== 'all'
+                    ? 'Tidak ada hasil yang ditemukan' 
+                    : 'Belum ada data siswa'}
+                </h3>
+                <p className="text-gray-500">
+                  {searchTerm || statusFilter !== 'all' || genderFilter !== 'all' || classFilter !== 'all'
+                    ? 'Coba ubah filter atau kata kunci pencarian Anda'
+                    : 'Mulai dengan menambahkan siswa pertama'}
+                </p>
+              </div>
+            ) : (
+              <table className="w-full min-w-[1000px]">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                  <tr>
+                    <th className="py-4 px-6 text-left font-semibold text-gray-700 whitespace-nowrap">Siswa</th>
+                    <th className="py-4 px-6 text-left font-semibold text-gray-700 whitespace-nowrap">NISN</th>
+                    <th className="py-4 px-6 text-left font-semibold text-gray-700 whitespace-nowrap">Jenis Kelamin</th>
+                    <th className="py-4 px-6 text-left font-semibold text-gray-700 whitespace-nowrap">Tanggal Lahir</th>
+                    <th className="py-4 px-6 text-left font-semibold text-gray-700 whitespace-nowrap">Kelas</th>
+                    <th className="py-4 px-6 text-left font-semibold text-gray-700 whitespace-nowrap">Status</th>
+                    <th className="py-4 px-6 text-center font-semibold text-gray-700 whitespace-nowrap">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredStudents.map((student) => {
+                    const studentClass = classes.find(c => c.id === student.class_id)
+                    return (
+                      <tr key={student.id} className="hover:bg-gray-50 transition-colors">
+                                                 <td className="py-4 px-6">
+                           <div className="flex items-center">
+                             <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+                               <UserIcon className="h-5 w-5 text-gray-600" />
+                             </div>
+                             <div>
+                               <div className="font-medium text-gray-900">{student.name}</div>
+                               <div className="text-sm text-gray-500">
+                                 {student.father_name && `Ayah: ${student.father_name}`}
+                               </div>
+                             </div>
+                           </div>
+                         </td>
+                                                 <td className="py-4 px-6">
+                           <span className="font-mono text-sm bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                             {student.nisn || '-'}
+                           </span>
+                         </td>
+                                                 <td className="py-4 px-6">
+                           <Badge 
+                             variant="outline" 
+                             className="border-gray-200 text-gray-700 bg-gray-50"
+                           >
+                             {student.gender === 'L' ? 'Laki-laki' : 'Perempuan'}
+                           </Badge>
+                         </td>
+                        <td className="py-4 px-6 text-sm text-gray-600">
+                          {new Date(student.birth_date).toLocaleDateString('id-ID')}
+                        </td>
+                                                 <td className="py-4 px-6">
+                           {studentClass ? (
+                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                               {studentClass.name}
+                             </span>
+                           ) : (
+                             <span className="text-gray-400">-</span>
+                           )}
+                         </td>
+                                                 <td className="py-4 px-6">
+                           <Badge 
+                             variant={student.status === 'active' ? 'default' : 'secondary'}
+                             className={student.status === 'active' 
+                               ? 'bg-gray-100 text-gray-800 hover:bg-gray-100' 
+                               : 'bg-gray-100 text-gray-800 hover:bg-gray-100'
+                             }
+                           >
+                             {student.status === 'active' ? 'Aktif' : 'Tidak Aktif'}
+                           </Badge>
+                         </td>
+                                                 <td className="py-4 px-6">
+                                                   <div className="flex justify-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-gray-50 hover:border-gray-200"
+                            onClick={() => handleView(student)}
+                          >
+                            <EyeIcon className="h-4 w-4 text-gray-600" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-gray-50 hover:border-gray-200"
+                            onClick={() => handleAccount(student)}
+                          >
+                            <KeyIcon className="h-4 w-4 text-gray-600" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-gray-50 hover:border-gray-200"
+                            onClick={() => handleEdit(student)}
+                          >
+                            <PenIcon className="h-4 w-4 text-gray-600" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-red-50 hover:border-red-200"
+                            onClick={() => handleDelete(student.id)}
+                          >
+                            <TrashIcon className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </div>
+                         </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      </CardContent>
 
       {/* Add Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Tambah Siswa Baru</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">Tambah Siswa Baru</DialogTitle>
           </DialogHeader>
           <Tabs defaultValue="personal" className="w-full">
             <TabsList className="grid w-full grid-cols-4">
@@ -489,11 +711,13 @@ export function StudentManagement() {
                 </div>
               </TabsContent>
 
-              <div className="mt-6 flex justify-end space-x-2">
+              <div className="mt-6 flex justify-end space-x-3">
                 <Button type="button" variant="outline" onClick={handleCloseDialogs}>
                   Batal
                 </Button>
-                <Button type="submit">Tambah Siswa</Button>
+                                 <Button type="submit" className="bg-gray-900 hover:bg-gray-800">
+                   Tambah Siswa
+                 </Button>
               </div>
             </form>
           </Tabs>
@@ -504,7 +728,7 @@ export function StudentManagement() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Edit Data Siswa</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">Edit Data Siswa</DialogTitle>
           </DialogHeader>
           <Tabs defaultValue="personal" className="w-full">
             <TabsList className="grid w-full grid-cols-4">
@@ -737,11 +961,13 @@ export function StudentManagement() {
                 </div>
               </TabsContent>
 
-              <div className="mt-6 flex justify-end space-x-2">
+              <div className="mt-6 flex justify-end space-x-3">
                 <Button type="button" variant="outline" onClick={handleCloseDialogs}>
                   Batal
                 </Button>
-                <Button type="submit">Update Siswa</Button>
+                                 <Button type="submit" className="bg-gray-900 hover:bg-gray-800">
+                   Update Siswa
+                 </Button>
               </div>
             </form>
           </Tabs>
@@ -752,7 +978,7 @@ export function StudentManagement() {
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Detail Siswa</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">Detail Siswa</DialogTitle>
           </DialogHeader>
           {selectedStudent && (
             <div className="space-y-6">
@@ -872,7 +1098,7 @@ export function StudentManagement() {
                 </TabsContent>
               </Tabs>
               
-              <div className="flex justify-end">
+              <div className="flex justify-end pt-4">
                 <Button variant="outline" onClick={handleCloseDialogs}>
                   Tutup
                 </Button>
@@ -881,6 +1107,63 @@ export function StudentManagement() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+
+      {/* Account Dialog */}
+      <Dialog open={isAccountDialogOpen} onOpenChange={setIsAccountDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">Kelola Akun Orang Tua</DialogTitle>
+          </DialogHeader>
+          {selectedStudent && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-2">Membuat akun untuk:</p>
+                <p className="font-medium text-gray-900">{selectedStudent.name}</p>
+                <p className="text-sm text-gray-500">Orang Tua</p>
+              </div>
+              
+              <form onSubmit={(e) => {
+                e.preventDefault()
+                const formData = new FormData(e.currentTarget)
+                const email = formData.get('email') as string
+                const password = formData.get('password') as string
+                handleCreateAccount(email, password)
+              }} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="account-email">Email</Label>
+                  <Input
+                    id="account-email"
+                    name="email"
+                    type="email"
+                    required
+                    placeholder="email@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="account-password">Password</Label>
+                  <Input
+                    id="account-password"
+                    name="password"
+                    type="password"
+                    required
+                    placeholder="Minimal 6 karakter"
+                    minLength={6}
+                  />
+                </div>
+                
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setIsAccountDialogOpen(false)}>
+                    Batal
+                  </Button>
+                  <Button type="submit" className="bg-gray-900 hover:bg-gray-800">
+                    Buat Akun
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </Card>
   )
 }

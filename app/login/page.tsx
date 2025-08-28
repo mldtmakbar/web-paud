@@ -32,8 +32,33 @@ export default function LoginPage() {
     setLoading(true)
     setError("")
 
+    console.log("Form data:", formData)
+    console.log("Form validation:", {
+      hasRole: !!formData.role,
+      hasEmail: !!formData.email,
+      hasPassword: !!formData.password,
+      emailValid: formData.email.includes('@'),
+      passwordValid: formData.password.length > 0
+    })
+
+    // Basic validation
+    if (!formData.role || !formData.email || !formData.password) {
+      setError("Semua field harus diisi")
+      setLoading(false)
+      return
+    }
+
+    if (!formData.email.includes('@')) {
+      setError("Format email tidak valid")
+      setLoading(false)
+      return
+    }
+
+    console.log("Login attempt:", { email: formData.email, role: formData.role, passwordLength: formData.password.length })
+
     try {
       const success = await login(formData.email, formData.password, formData.role)
+      console.log("Login result:", success)
 
       if (success) {
         // Redirect based on role
@@ -42,11 +67,14 @@ export default function LoginPage() {
           teacher: "/dashboard/teacher",
           admin: "/dashboard/admin",
         }
-        router.push(dashboardRoutes[formData.role as keyof typeof dashboardRoutes])
+        const redirectPath = dashboardRoutes[formData.role as keyof typeof dashboardRoutes]
+        console.log("Redirecting to:", redirectPath)
+        router.push(redirectPath)
       } else {
         setError("Email, password, atau role tidak valid. Silakan coba lagi.")
       }
     } catch (err) {
+      console.error("Login error:", err)
       setError("Terjadi kesalahan saat login. Silakan coba lagi.")
     } finally {
       setLoading(false)

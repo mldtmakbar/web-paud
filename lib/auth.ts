@@ -12,12 +12,71 @@ export interface User {
   studentIds?: string[] // For parents
 }
 
+// Mock authentication for testing (temporary)
+export async function authenticateMock(
+  usernameOrEmail: string,
+  password: string,
+  role?: string
+): Promise<User | null> {
+  // Simple mock authentication for testing
+  const mockUsers = [
+    {
+      id: "1",
+      email: "parent@example.com",
+      name: "Budi Santoso",
+      role: "parent" as const,
+      username: "parent@example.com",
+      phone: "081234567890",
+      studentIds: ["student1", "student2"]
+    },
+    {
+      id: "2", 
+      email: "teacher@example.com",
+      name: "Bu Sarah Wijaya",
+      role: "teacher" as const,
+      username: "teacher@example.com",
+      phone: "081234567891"
+    },
+    {
+      id: "admin",
+      email: "admin@example.com", 
+      name: "Admin TK Ceria",
+      role: "admin" as const,
+      username: "admin@example.com",
+      phone: "081234567892"
+    },
+    {
+      id: "admin2",
+      email: "admin@tkceria.com", 
+      name: "Admin TK Ceria",
+      role: "admin" as const,
+      username: "admin@tkceria.com",
+      phone: "081234567893"
+    }
+  ]
+
+  // Find user by email and role
+  const user = mockUsers.find(u => 
+    u.email === usernameOrEmail && 
+    (role ? u.role === role : true) // If role is specified, check it matches
+  )
+  
+  if (user && password.length > 0) { // Accept any password for testing
+    console.log("Mock auth successful:", user)
+    return user
+  }
+  
+  console.log("Mock auth failed:", { usernameOrEmail, role, passwordLength: password.length })
+  return null
+}
+
 export async function authenticate(
   usernameOrEmail: string,
   password: string,
   role?: string
 ): Promise<User | null> {
   try {
+    // Use real auth with Supabase
     return loginWithCredentials(usernameOrEmail, password, role)
   } catch (error) {
     console.error('Authentication error:', error)
@@ -70,22 +129,95 @@ export async function loginWithCredentials(
   role?: string
 ): Promise<User | null> {
   try {
-    // Determine if identifier is email or username
-    const field = isEmail(identifier) ? 'email' : 'username'
-    
-    // Find user by email or username
+    // First, try to find user in user_accounts table (for parents and teachers)
+    const { data: accountData, error: accountError } = await supabase
+      .from('user_accounts')
+      .select('*')
+      .eq('email', identifier)
+      .single()
+
+    if (accountData) {
+      // User found in user_accounts table
+      // Verify password
+      if (accountData.password !== password) {
+        console.error('Invalid password')
+        return null
+      }
+
+      // Verify role if specified
+      if (role && accountData.role !== role) {
+        console.error('Invalid role')
+        return null
+      }
+
+      // Get additional user data based on role
+      let userData: any = null
+      if (accountData.role === 'parent') {
+        // For parent accounts, user_id points to the student they have access to
+        const { data: studentData, error: studentError } = await supabase
+          .from('students')
+          .select('*')
+          .eq('id', accountData.user_id)
+          .single()
+        
+        if (studentData) {
+          userData = {
+            id: accountData.id,
+            name: accountData.user_name,
+            email: accountData.email,
+            role: accountData.role,
+            username: accountData.email, // Use email as username
+            phone: studentData.father_phone || studentData.mother_phone || '',
+            created_at: accountData.created_at,
+            updated_at: accountData.updated_at,
+            studentIds: [accountData.user_id] // Parent has access to their child
+          }
+        }
+      } else if (accountData.role === 'teacher') {
+        // Get teacher data
+        const { data: teacherData, error: teacherError } = await supabase
+          .from('teachers')
+          .select('*')
+          .eq('id', accountData.user_id)
+          .single()
+        
+        if (teacherData) {
+          userData = {
+            id: accountData.id,
+            name: accountData.user_name,
+            email: accountData.email,
+            role: accountData.role,
+            username: accountData.email, // Use email as username
+            phone: teacherData.phone || '',
+            created_at: accountData.created_at,
+            updated_at: accountData.updated_at
+          }
+        }
+      }
+
+      if (!userData) {
+        console.error('User data not found for role:', accountData.role)
+        return null
+      }
+
+      const user: User = userData
+      storeUser(user)
+      return user
+    }
+
+    // If not found in user_accounts, try the old users table (for admin accounts)
     const { data: userData, error: userError } = await supabase
       .from('users')
       .select('*')
-      .eq(field, identifier)
+      .eq('email', identifier)
       .single()
 
     if (userError || !userData) {
-      console.error('User not found:', userError?.message)
+      console.error('User not found in both tables:', userError?.message)
       return null
     }
 
-    // Verify password
+    // Verify password for old users table
     if (userData.password_hash !== password) {
       console.error('Invalid password')
       return null
@@ -128,3 +260,4 @@ export async function loginWithCredentials(
     return null
   }
 }
+

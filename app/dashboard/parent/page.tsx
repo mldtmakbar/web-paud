@@ -28,13 +28,45 @@ export default function ParentDashboard() {
 
   useEffect(() => {
     if (user) {
+      console.log("User logged in:", user)
+      console.log("User ID:", user.id)
       const userStudents = getStudentsByParentId(user.id)
+      console.log("Found students:", userStudents)
       setStudents(userStudents)
       if (userStudents.length > 0) {
         setSelectedStudent(userStudents[0])
       }
     }
   }, [user])
+
+  // Debug: Log current state
+  console.log("Current user:", user)
+  console.log("Current students:", students)
+  console.log("Selected student:", selectedStudent)
+
+  // Fallback: If no students found, show some sample data for testing
+  const fallbackStudents = students.length === 0 ? [
+    {
+      id: "student1",
+      name: "Andi Santoso",
+      class: "TK A",
+      dateOfBirth: "2019-05-15",
+      parentId: "1",
+      photo: "/placeholder-user.jpg",
+      nisn: "1234567890",
+      gender: "L" as const,
+      address: "Jl. Merdeka No. 123, Jakarta Selatan",
+      bloodType: "O",
+      allergies: "Tidak ada",
+      emergencyContact: "Ibu Sari Santoso",
+      emergencyPhone: "081234567890",
+      status: "active" as const,
+      enrollmentDate: "2024-01-01",
+    }
+  ] : students
+
+  const displayStudents = students.length > 0 ? students : fallbackStudents
+  const displaySelectedStudent = selectedStudent || fallbackStudents[0]
 
   const handleExportPDF = () => {
     if (!selectedStudent) return
@@ -51,6 +83,54 @@ export default function ParentDashboard() {
     })
   }
 
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Memuat data pengguna...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show message when no students found
+  if (students.length === 0) {
+    return (
+      <AuthGuard requiredRole="parent">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground font-serif">Dashboard Orang Tua</h1>
+            <p className="text-muted-foreground">Selamat datang, {user?.name}</p>
+          </div>
+          
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-12">
+                <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <User className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  Tidak ada data siswa yang ditemukan
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Belum ada siswa yang terdaftar untuk akun orang tua ini.
+                </p>
+                <div className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
+                  <p className="font-medium mb-2">Debug Info:</p>
+                  <p>User ID: {user.id}</p>
+                  <p>User Role: {user.role}</p>
+                  <p>Total Students in System: {getStudentsByParentId("1").length + getStudentsByParentId("2").length}</p>
+                  <p>Fallback Students: {fallbackStudents.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </AuthGuard>
+    )
+  }
+
   if (!selectedStudent) {
     return (
       <AuthGuard requiredRole="parent">
@@ -61,10 +141,10 @@ export default function ParentDashboard() {
     )
   }
 
-  const payments = getPaymentsByStudentId(selectedStudent.id)
-  const attendance = getAttendanceByStudentId(selectedStudent.id)
-  const grades = getGradesByStudentId(selectedStudent.id)
-  const parentData = getParentByStudentId(selectedStudent.id)
+  const payments = getPaymentsByStudentId(displaySelectedStudent.id)
+  const attendance = getAttendanceByStudentId(displaySelectedStudent.id)
+  const grades = getGradesByStudentId(displaySelectedStudent.id)
+  const parentData = getParentByStudentId(displaySelectedStudent.id)
 
   return (
     <AuthGuard requiredRole="parent">
@@ -85,11 +165,11 @@ export default function ParentDashboard() {
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Pilih Siswa</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {students.map((student) => (
+            {displayStudents.map((student) => (
               <StudentCard
                 key={student.id}
                 student={student}
-                isSelected={selectedStudent?.id === student.id}
+                isSelected={displaySelectedStudent?.id === student.id}
                 onClick={() => setSelectedStudent(student)}
               />
             ))}
@@ -116,9 +196,9 @@ export default function ParentDashboard() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-2xl font-semibold">{selectedStudent.name}</h3>
-                    <p className="text-muted-foreground">NISN: {selectedStudent.nisn}</p>
-                    <p className="text-muted-foreground">Kelas: {selectedStudent.class}</p>
+                    <h3 className="text-2xl font-semibold">{displaySelectedStudent.name}</h3>
+                    <p className="text-muted-foreground">NISN: {displaySelectedStudent.nisn}</p>
+                    <p className="text-muted-foreground">Kelas: {displaySelectedStudent.class}</p>
                   </div>
                 </div>
 
@@ -126,32 +206,32 @@ export default function ParentDashboard() {
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Tanggal Lahir</p>
-                      <p className="text-base">{new Date(selectedStudent.dateOfBirth).toLocaleDateString("id-ID")}</p>
+                      <p className="text-base">{new Date(displaySelectedStudent.dateOfBirth).toLocaleDateString("id-ID")}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Jenis Kelamin</p>
-                      <p className="text-base">{selectedStudent.gender === "L" ? "Laki-laki" : "Perempuan"}</p>
+                      <p className="text-base">{displaySelectedStudent.gender === "L" ? "Laki-laki" : "Perempuan"}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Golongan Darah</p>
-                      <p className="text-base">{selectedStudent.bloodType}</p>
+                      <p className="text-base">{displaySelectedStudent.bloodType}</p>
                     </div>
                   </div>
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Usia</p>
                       <p className="text-base">
-                        {new Date().getFullYear() - new Date(selectedStudent.dateOfBirth).getFullYear()} tahun
+                        {new Date().getFullYear() - new Date(displaySelectedStudent.dateOfBirth).getFullYear()} tahun
                       </p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Alergi</p>
-                      <p className="text-base">{selectedStudent.allergies}</p>
+                      <p className="text-base">{displaySelectedStudent.allergies}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Kontak Darurat</p>
-                      <p className="text-base">{selectedStudent.emergencyContact}</p>
-                      <p className="text-sm text-muted-foreground">{selectedStudent.emergencyPhone}</p>
+                      <p className="text-base">{displaySelectedStudent.emergencyContact}</p>
+                      <p className="text-sm text-muted-foreground">{displaySelectedStudent.emergencyPhone}</p>
                     </div>
                   </div>
                 </div>
@@ -160,7 +240,7 @@ export default function ParentDashboard() {
                   <p className="text-sm font-medium text-muted-foreground mb-2">Alamat</p>
                   <div className="flex items-start space-x-2">
                     <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
-                    <p className="text-base">{selectedStudent.address}</p>
+                    <p className="text-base">{displaySelectedStudent.address}</p>
                   </div>
                 </div>
               </div>

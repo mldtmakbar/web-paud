@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { Student, Teacher, Class, Payment, Attendance } from '@/lib/types'
+import { Student, Teacher, Class, Payment, Attendance, UserAccount } from '@/lib/types'
 
 // Student Management
 export async function getStudents() {
@@ -143,7 +143,26 @@ export async function getClasses() {
     console.error('Error fetching classes:', error)
     return []
   }
-  return data
+
+  // Get student counts for each class
+  const classesWithStudentCounts = await Promise.all(
+    data.map(async (cls) => {
+      const { count, error: countError } = await supabase
+        .from('students')
+        .select('*', { count: 'exact', head: true })
+        .eq('class_id', cls.id)
+        .eq('status', 'active')
+
+      if (countError) {
+        console.error('Error counting students for class:', cls.id, countError)
+        return { ...cls, current_students: 0 }
+      }
+
+      return { ...cls, current_students: count || 0 }
+    })
+  )
+
+  return classesWithStudentCounts
 }
 
 export async function addClass(class_: Omit<Class, 'id' | 'created_at' | 'updated_at'>) {
@@ -305,4 +324,60 @@ export async function getPaymentTypes() {
     return []
   }
   return data
+}
+
+// Account Management
+export async function getAccounts() {
+  const { data, error } = await supabase
+    .from('user_accounts')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching accounts:', error)
+    return []
+  }
+  return data
+}
+
+export async function addAccount(account: Omit<UserAccount, 'id' | 'created_at' | 'updated_at'>) {
+  const { data, error } = await supabase
+    .from('user_accounts')
+    .insert([account])
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error adding account:', error)
+    return null
+  }
+  return data
+}
+
+export async function updateAccount(id: string, account: Partial<UserAccount>) {
+  const { data, error } = await supabase
+    .from('user_accounts')
+    .update(account)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating account:', error)
+    return null
+  }
+  return data
+}
+
+export async function deleteAccount(id: string) {
+  const { error } = await supabase
+    .from('user_accounts')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error deleting account:', error)
+    throw error
+  }
+  return true
 }
