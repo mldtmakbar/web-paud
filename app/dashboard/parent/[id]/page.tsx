@@ -9,9 +9,13 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
-import { CalendarDays, User, GraduationCap, CreditCard, FileText, Heart, Phone, MapPin, AlertCircle, CheckCircle, Clock, XCircle } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { CalendarDays, User, GraduationCap, CreditCard, FileText, Heart, Phone, MapPin, AlertCircle, CheckCircle, Clock, XCircle, Edit, Save, X, Eye, EyeOff, Settings } from "lucide-react"
 import { getStudentsByParentId, getAttendance, getPayments, getGrades, getClasses } from "@/lib/db"
 import { Student, Attendance, Payment, Grade, Class } from "@/lib/types"
+import { supabase } from "@/lib/supabase"
 
 export default function ParentDashboardWithId() {
   const { user, loading } = useAuth()
@@ -27,6 +31,33 @@ export default function ParentDashboardWithId() {
   const [grades, setGrades] = useState<Grade[]>([])
   const [classes, setClasses] = useState<Class[]>([])
   const [dataLoading, setDataLoading] = useState(true)
+  
+  // Profile editing states
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [isEditingPassword, setIsEditingPassword] = useState(false)
+  const [profileData, setProfileData] = useState({
+    father_name: '',
+    father_occupation: '',
+    father_work_address: '',
+    father_phone: '',
+    father_email: '',
+    mother_name: '',
+    mother_occupation: '',
+    mother_work_address: '',
+    mother_phone: '',
+    mother_email: '',
+    home_address: ''
+  })
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  const [showPassword, setShowPassword] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  })
 
   // Load students data on component mount
   useEffect(() => {
@@ -56,10 +87,24 @@ export default function ParentDashboardWithId() {
       setStudents(studentsData)
       setClasses(classesData)
       
-      // Auto-select first student if available
+      // Load profile data from first student's parent info
       if (studentsData.length > 0) {
+        const student = studentsData[0]
+        setProfileData({
+          father_name: student.father_name || '',
+          father_occupation: student.father_occupation || '',
+          father_work_address: student.father_work_address || '',
+          father_phone: student.father_phone || '',
+          father_email: student.father_email || '',
+          mother_name: student.mother_name || '',
+          mother_occupation: student.mother_occupation || '',
+          mother_work_address: student.mother_work_address || '',
+          mother_phone: student.mother_phone || '',
+          mother_email: student.mother_email || '',
+          home_address: student.home_address || ''
+        })
         setSelectedStudent(studentsData[0])
-        console.log('Auto-selected first student:', studentsData[0])
+        console.log('Auto-selected first student and loaded profile data:', studentsData[0])
       } else {
         console.log('No students found for parent ID:', userId)
       }
@@ -101,6 +146,83 @@ export default function ParentDashboardWithId() {
       age--
     }
     return age
+  }
+
+  const handleSaveProfile = async () => {
+    try {
+      // Update student record with new parent information
+      if (selectedStudent) {
+        const { error } = await supabase
+          .from('students')
+          .update({
+            father_name: profileData.father_name,
+            father_occupation: profileData.father_occupation,
+            father_work_address: profileData.father_work_address,
+            father_phone: profileData.father_phone,
+            father_email: profileData.father_email,
+            mother_name: profileData.mother_name,
+            mother_occupation: profileData.mother_occupation,
+            mother_work_address: profileData.mother_work_address,
+            mother_phone: profileData.mother_phone,
+            mother_email: profileData.mother_email,
+            home_address: profileData.home_address,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', selectedStudent.id)
+
+        if (error) {
+          console.error('Error updating profile:', error)
+          alert('Gagal menyimpan profil. Silakan coba lagi.')
+        } else {
+          alert('Profil berhasil disimpan!')
+          setIsEditingProfile(false)
+          // Reload data to reflect changes
+          await loadStudentsData()
+        }
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error)
+      alert('Terjadi kesalahan saat menyimpan profil.')
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      alert('Password baru dan konfirmasi password tidak sama!')
+      return
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      alert('Password baru minimal 6 karakter!')
+      return
+    }
+
+    try {
+      // Update password in user_accounts table
+      const { error } = await supabase
+        .from('user_accounts')
+        .update({
+          password: passwordData.newPassword, // In production, this should be hashed
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+
+      if (error) {
+        console.error('Error updating password:', error)
+        alert('Gagal mengubah password. Silakan coba lagi.')
+      } else {
+        alert('Password berhasil diubah!')
+        setIsEditingPassword(false)
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        })
+      }
+    } catch (error) {
+      console.error('Error changing password:', error)
+      alert('Terjadi kesalahan saat mengubah password.')
+    }
   }
 
   // Show loading state
@@ -213,73 +335,320 @@ export default function ParentDashboardWithId() {
           {/* Student Details */}
           {selectedStudent && (
             <div className="space-y-6">
-              {/* Student Profile Card */}
+              {/* Parent Profile Card */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5" />
-                    Profil Anak
-                  </CardTitle>
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5" />
+                      Profil Orang Tua
+                    </CardTitle>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditingPassword(!isEditingPassword)}
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        Ganti Password
+                      </Button>
+                      {!isEditingProfile ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsEditingProfile(true)}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Profil
+                        </Button>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsEditingProfile(false)}
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Batal
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveProfile}
+                          >
+                            <Save className="h-4 w-4 mr-2" />
+                            Simpan
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-col md:flex-row gap-6">
-                    <div className="flex-shrink-0">
-                      <Avatar className="h-24 w-24">
-                        <AvatarImage src="/placeholder-user.jpg" alt={selectedStudent.name} />
-                        <AvatarFallback className="text-2xl">
-                          {selectedStudent.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                  {/* Password Change Section */}
+                  {isEditingPassword && (
+                    <div className="mb-6 p-4 border rounded-lg bg-blue-50">
+                      <h4 className="font-semibold mb-3">Ganti Password</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="currentPassword">Password Saat Ini</Label>
+                          <div className="relative">
+                            <Input
+                              id="currentPassword"
+                              type={showPassword.current ? "text" : "password"}
+                              value={passwordData.currentPassword}
+                              onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                              placeholder="Masukkan password saat ini"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                              onClick={() => setShowPassword(prev => ({ ...prev, current: !prev.current }))}
+                            >
+                              {showPassword.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="newPassword">Password Baru</Label>
+                          <div className="relative">
+                            <Input
+                              id="newPassword"
+                              type={showPassword.new ? "text" : "password"}
+                              value={passwordData.newPassword}
+                              onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                              placeholder="Masukkan password baru"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                              onClick={() => setShowPassword(prev => ({ ...prev, new: !prev.new }))}
+                            >
+                              {showPassword.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
+                          <div className="relative">
+                            <Input
+                              id="confirmPassword"
+                              type={showPassword.confirm ? "text" : "password"}
+                              value={passwordData.confirmPassword}
+                              onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                              placeholder="Konfirmasi password baru"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                              onClick={() => setShowPassword(prev => ({ ...prev, confirm: !prev.confirm }))}
+                            >
+                              {showPassword.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setIsEditingPassword(false)
+                            setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+                          }}
+                        >
+                          Batal
+                        </Button>
+                        <Button onClick={handleChangePassword}>
+                          Simpan Password
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <h3 className="text-2xl font-bold mb-2">{selectedStudent.name}</h3>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                            <span>Kelas: {getStudentClass(selectedStudent.class_id)}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                            <span>Umur: {calculateAge(selectedStudent.birth_date)} tahun</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <span>Gender: {selectedStudent.gender}</span>
-                          </div>
-                          {selectedStudent.nisn && (
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                              <span>NISN: {selectedStudent.nisn}</span>
-                            </div>
+                  )}
+
+                  {/* Profile Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Father Information */}
+                    <div>
+                      <h4 className="font-semibold mb-3 text-blue-600">Data Ayah</h4>
+                      <div className="space-y-3">
+                        <div>
+                          <Label htmlFor="father_name">Nama Ayah</Label>
+                          {isEditingProfile ? (
+                            <Input
+                              id="father_name"
+                              value={profileData.father_name}
+                              onChange={(e) => setProfileData(prev => ({ ...prev, father_name: e.target.value }))}
+                              placeholder="Nama lengkap ayah"
+                            />
+                          ) : (
+                            <p className="text-sm p-2 bg-gray-50 rounded">{profileData.father_name || 'Belum diisi'}</p>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="father_occupation">Pekerjaan Ayah</Label>
+                          {isEditingProfile ? (
+                            <Input
+                              id="father_occupation"
+                              value={profileData.father_occupation}
+                              onChange={(e) => setProfileData(prev => ({ ...prev, father_occupation: e.target.value }))}
+                              placeholder="Pekerjaan ayah"
+                            />
+                          ) : (
+                            <p className="text-sm p-2 bg-gray-50 rounded">{profileData.father_occupation || 'Belum diisi'}</p>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="father_work_address">Alamat Kerja Ayah</Label>
+                          {isEditingProfile ? (
+                            <Textarea
+                              id="father_work_address"
+                              value={profileData.father_work_address}
+                              onChange={(e) => setProfileData(prev => ({ ...prev, father_work_address: e.target.value }))}
+                              placeholder="Alamat tempat kerja ayah"
+                              rows={2}
+                            />
+                          ) : (
+                            <p className="text-sm p-2 bg-gray-50 rounded">{profileData.father_work_address || 'Belum diisi'}</p>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="father_phone">Nomor HP Ayah</Label>
+                          {isEditingProfile ? (
+                            <Input
+                              id="father_phone"
+                              value={profileData.father_phone}
+                              onChange={(e) => setProfileData(prev => ({ ...prev, father_phone: e.target.value }))}
+                              placeholder="Nomor telepon ayah"
+                            />
+                          ) : (
+                            <p className="text-sm p-2 bg-gray-50 rounded">{profileData.father_phone || 'Belum diisi'}</p>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="father_email">Email Ayah</Label>
+                          {isEditingProfile ? (
+                            <Input
+                              id="father_email"
+                              type="email"
+                              value={profileData.father_email}
+                              onChange={(e) => setProfileData(prev => ({ ...prev, father_email: e.target.value }))}
+                              placeholder="Email ayah"
+                            />
+                          ) : (
+                            <p className="text-sm p-2 bg-gray-50 rounded">{profileData.father_email || 'Belum diisi'}</p>
                           )}
                         </div>
                       </div>
-                      <div className="space-y-2 text-sm">
-                        {selectedStudent.blood_type && (
-                          <div className="flex items-center gap-2">
-                            <Heart className="h-4 w-4 text-red-500" />
-                            <span>Golongan Darah: {selectedStudent.blood_type}</span>
-                          </div>
-                        )}
-                        {selectedStudent.allergies && (
-                          <div className="flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4 text-yellow-500" />
-                            <span>Alergi: {selectedStudent.allergies}</span>
-                          </div>
-                        )}
-                        <Badge variant={selectedStudent.status === 'active' ? 'default' : 'secondary'}>
-                          {selectedStudent.status === 'active' ? 'Aktif' : 'Non-Aktif'}
-                        </Badge>
+                    </div>
+
+                    {/* Mother Information */}
+                    <div>
+                      <h4 className="font-semibold mb-3 text-pink-600">Data Ibu</h4>
+                      <div className="space-y-3">
+                        <div>
+                          <Label htmlFor="mother_name">Nama Ibu</Label>
+                          {isEditingProfile ? (
+                            <Input
+                              id="mother_name"
+                              value={profileData.mother_name}
+                              onChange={(e) => setProfileData(prev => ({ ...prev, mother_name: e.target.value }))}
+                              placeholder="Nama lengkap ibu"
+                            />
+                          ) : (
+                            <p className="text-sm p-2 bg-gray-50 rounded">{profileData.mother_name || 'Belum diisi'}</p>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="mother_occupation">Pekerjaan Ibu</Label>
+                          {isEditingProfile ? (
+                            <Input
+                              id="mother_occupation"
+                              value={profileData.mother_occupation}
+                              onChange={(e) => setProfileData(prev => ({ ...prev, mother_occupation: e.target.value }))}
+                              placeholder="Pekerjaan ibu"
+                            />
+                          ) : (
+                            <p className="text-sm p-2 bg-gray-50 rounded">{profileData.mother_occupation || 'Belum diisi'}</p>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="mother_work_address">Alamat Kerja Ibu</Label>
+                          {isEditingProfile ? (
+                            <Textarea
+                              id="mother_work_address"
+                              value={profileData.mother_work_address}
+                              onChange={(e) => setProfileData(prev => ({ ...prev, mother_work_address: e.target.value }))}
+                              placeholder="Alamat tempat kerja ibu"
+                              rows={2}
+                            />
+                          ) : (
+                            <p className="text-sm p-2 bg-gray-50 rounded">{profileData.mother_work_address || 'Belum diisi'}</p>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="mother_phone">Nomor HP Ibu</Label>
+                          {isEditingProfile ? (
+                            <Input
+                              id="mother_phone"
+                              value={profileData.mother_phone}
+                              onChange={(e) => setProfileData(prev => ({ ...prev, mother_phone: e.target.value }))}
+                              placeholder="Nomor telepon ibu"
+                            />
+                          ) : (
+                            <p className="text-sm p-2 bg-gray-50 rounded">{profileData.mother_phone || 'Belum diisi'}</p>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="mother_email">Email Ibu</Label>
+                          {isEditingProfile ? (
+                            <Input
+                              id="mother_email"
+                              type="email"
+                              value={profileData.mother_email}
+                              onChange={(e) => setProfileData(prev => ({ ...prev, mother_email: e.target.value }))}
+                              placeholder="Email ibu"
+                            />
+                          ) : (
+                            <p className="text-sm p-2 bg-gray-50 rounded">{profileData.mother_email || 'Belum diisi'}</p>
+                          )}
+                        </div>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Home Address */}
+                  <div className="mt-6">
+                    <h4 className="font-semibold mb-3 text-green-600">Alamat Rumah</h4>
+                    <div>
+                      <Label htmlFor="home_address">Alamat Lengkap</Label>
+                      {isEditingProfile ? (
+                        <Textarea
+                          id="home_address"
+                          value={profileData.home_address}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, home_address: e.target.value }))}
+                          placeholder="Alamat lengkap rumah"
+                          rows={3}
+                        />
+                      ) : (
+                        <p className="text-sm p-2 bg-gray-50 rounded">{profileData.home_address || 'Belum diisi'}</p>
+                      )}
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Tabs for different sections */}
-              <Tabs defaultValue="attendance" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+              <Tabs defaultValue="student" className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="student" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Data Anak
+                  </TabsTrigger>
                   <TabsTrigger value="attendance" className="flex items-center gap-2">
                     <CalendarDays className="h-4 w-4" />
                     Kehadiran
@@ -293,6 +662,83 @@ export default function ParentDashboardWithId() {
                     Nilai
                   </TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="student" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <User className="h-5 w-5" />
+                        Profil Anak
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-col md:flex-row gap-6">
+                        <div className="flex-shrink-0">
+                          <Avatar className="h-24 w-24">
+                            <AvatarImage src="/placeholder-user.jpg" alt={selectedStudent.name} />
+                            <AvatarFallback className="text-2xl">
+                              {selectedStudent.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <h3 className="text-2xl font-bold mb-2">{selectedStudent.name}</h3>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex items-center gap-2">
+                                <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                                <span>Kelas: {getStudentClass(selectedStudent.class_id)}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                                <span>Umur: {calculateAge(selectedStudent.birth_date)} tahun</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4 text-muted-foreground" />
+                                <span>Gender: {selectedStudent.gender}</span>
+                              </div>
+                              {selectedStudent.nisn && (
+                                <div className="flex items-center gap-2">
+                                  <FileText className="h-4 w-4 text-muted-foreground" />
+                                  <span>NISN: {selectedStudent.nisn}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            {selectedStudent.blood_type && (
+                              <div className="flex items-center gap-2">
+                                <Heart className="h-4 w-4 text-red-500" />
+                                <span>Golongan Darah: {selectedStudent.blood_type}</span>
+                              </div>
+                            )}
+                            {selectedStudent.allergies && (
+                              <div className="flex items-center gap-2">
+                                <AlertCircle className="h-4 w-4 text-yellow-500" />
+                                <span>Alergi: {selectedStudent.allergies}</span>
+                              </div>
+                            )}
+                            {selectedStudent.emergency_contact && (
+                              <div className="flex items-center gap-2">
+                                <Phone className="h-4 w-4 text-blue-500" />
+                                <span>Kontak Darurat: {selectedStudent.emergency_contact}</span>
+                              </div>
+                            )}
+                            {selectedStudent.emergency_phone && (
+                              <div className="flex items-center gap-2">
+                                <Phone className="h-4 w-4 text-blue-500" />
+                                <span>No. Darurat: {selectedStudent.emergency_phone}</span>
+                              </div>
+                            )}
+                            <Badge variant={selectedStudent.status === 'active' ? 'default' : 'secondary'}>
+                              {selectedStudent.status === 'active' ? 'Aktif' : 'Non-Aktif'}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
                 <TabsContent value="attendance" className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
