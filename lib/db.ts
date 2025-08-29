@@ -350,6 +350,86 @@ export async function updateAssessmentAspect(id: string, updates: Partial<Assess
   return data
 }
 
+// Check if assessment aspect is being used in grades
+export async function checkAssessmentAspectUsage(aspectId: string) {
+  try {
+    // Check if aspect has grades
+    const { data: gradesData, error: gradesError } = await supabase
+      .from('grades')
+      .select('id')
+      .eq('aspect_id', aspectId)
+      .limit(1)
+    
+    if (gradesError) {
+      console.error('Error checking grades usage:', gradesError)
+      throw gradesError
+    }
+
+    if (gradesData && gradesData.length > 0) {
+      return {
+        canDelete: false,
+        reason: 'Aspek ini sedang digunakan pada nilai siswa di dalam sistem'
+      }
+    }
+
+    // Check if aspect has sub aspects
+    const { data: subAspectsData, error: subAspectsError } = await supabase
+      .from('assessment_sub_aspects')
+      .select('id')
+      .eq('aspect_id', aspectId)
+      .limit(1)
+    
+    if (subAspectsError) {
+      console.error('Error checking sub aspects:', subAspectsError)
+      throw subAspectsError
+    }
+
+    if (subAspectsData && subAspectsData.length > 0) {
+      return {
+        canDelete: false,
+        reason: 'Aspek ini memiliki sub aspek yang terkait'
+      }
+    }
+
+    return {
+      canDelete: true,
+      reason: ''
+    }
+  } catch (error) {
+    console.error('Error checking assessment aspect usage:', error)
+    throw error
+  }
+}
+
+// Delete assessment aspect
+export async function deleteAssessmentAspect(aspectId: string) {
+  try {
+    // First check if it can be deleted
+    const usageCheck = await checkAssessmentAspectUsage(aspectId)
+    
+    if (!usageCheck.canDelete) {
+      throw new Error(usageCheck.reason)
+    }
+
+    const { data, error } = await supabase
+      .from('assessment_aspects')
+      .delete()
+      .eq('id', aspectId)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error deleting assessment aspect:', error)
+      throw error
+    }
+    
+    return data
+  } catch (error) {
+    console.error('Error in deleteAssessmentAspect:', error)
+    throw error
+  }
+}
+
 // ==============================
 // ASSESSMENT SUB ASPECT FUNCTIONS  
 // ==============================
@@ -403,6 +483,67 @@ export async function updateAssessmentSubAspect(id: string, updates: Partial<Ass
   }
   
   return data
+}
+
+// Check if assessment sub aspect is being used in grades
+export async function checkAssessmentSubAspectUsage(subAspectId: string) {
+  try {
+    // Check if sub aspect has grades
+    const { data: gradesData, error: gradesError } = await supabase
+      .from('grades')
+      .select('id')
+      .eq('sub_aspect_id', subAspectId)
+      .limit(1)
+    
+    if (gradesError) {
+      console.error('Error checking grades usage for sub aspect:', gradesError)
+      throw gradesError
+    }
+
+    if (gradesData && gradesData.length > 0) {
+      return {
+        canDelete: false,
+        reason: 'Sub aspek ini sedang digunakan pada nilai siswa di dalam sistem'
+      }
+    }
+
+    return {
+      canDelete: true,
+      reason: ''
+    }
+  } catch (error) {
+    console.error('Error checking assessment sub aspect usage:', error)
+    throw error
+  }
+}
+
+// Delete assessment sub aspect
+export async function deleteAssessmentSubAspect(subAspectId: string) {
+  try {
+    // First check if it can be deleted
+    const usageCheck = await checkAssessmentSubAspectUsage(subAspectId)
+    
+    if (!usageCheck.canDelete) {
+      throw new Error(usageCheck.reason)
+    }
+
+    const { data, error } = await supabase
+      .from('assessment_sub_aspects')
+      .delete()
+      .eq('id', subAspectId)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error deleting assessment sub aspect:', error)
+      throw error
+    }
+    
+    return data
+  } catch (error) {
+    console.error('Error in deleteAssessmentSubAspect:', error)
+    throw error
+  }
 }
 
 // ==============================

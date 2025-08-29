@@ -158,32 +158,6 @@ export default function AdminDashboardWithId() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
-      <div style={{ 
-        padding: '30px', 
-        backgroundColor: '#1e40af',
-        color: 'white',
-        borderRadius: '8px',
-        textAlign: 'center'
-      }}>
-        <h1 style={{ fontSize: '36px', marginBottom: '10px' }}>
-          🎉 HALLO {user.name}!
-        </h1>
-        <h2 style={{ fontSize: '24px', marginBottom: '15px' }}>
-          Selamat Datang di Dashboard Administrator
-        </h2>
-        <div style={{ 
-          backgroundColor: 'rgba(255,255,255,0.2)',
-          padding: '15px',
-          borderRadius: '8px',
-          marginTop: '20px'
-        }}>
-          <p><strong>User ID:</strong> {user.id}</p>
-          <p><strong>Email:</strong> {user.email}</p>
-          <p><strong>Role:</strong> {user.role}</p>
-        </div>
-      </div>
-
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (

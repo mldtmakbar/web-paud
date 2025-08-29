@@ -37,9 +37,13 @@ import {
   getAssessmentAspects, 
   createAssessmentAspect, 
   updateAssessmentAspect,
+  deleteAssessmentAspect,
+  checkAssessmentAspectUsage,
   getAssessmentSubAspects,
   createAssessmentSubAspect,
-  updateAssessmentSubAspect
+  updateAssessmentSubAspect,
+  deleteAssessmentSubAspect,
+  checkAssessmentSubAspectUsage
 } from '@/lib/db'
 import type { AssessmentAspect, AssessmentSubAspect } from '@/lib/types'
 
@@ -81,6 +85,8 @@ export default function AssessmentManagement() {
   const [editingSubAspect, setEditingSubAspect] = useState<AssessmentSubAspect | null>(null)
   const [saving, setSaving] = useState(false)
   const [expandedAspects, setExpandedAspects] = useState<Set<string>>(new Set())
+  const [deletingItem, setDeletingItem] = useState<{type: 'aspect' | 'subAspect', id: string, name: string} | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const { toast } = useToast()
 
   const [aspectFormData, setAspectFormData] = useState<AspectFormData>({
@@ -294,6 +300,94 @@ export default function AssessmentManagement() {
 
   const getCategoryLabel = (category: string) => {
     return CATEGORIES.find(cat => cat.value === category)?.label || category
+  }
+
+  const handleDeleteAspect = async (aspect: AssessmentAspect) => {
+    setDeletingItem({
+      type: 'aspect',
+      id: aspect.id,
+      name: aspect.name
+    })
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleDeleteSubAspect = async (subAspect: AssessmentSubAspect) => {
+    setDeletingItem({
+      type: 'subAspect',
+      id: subAspect.id,
+      name: subAspect.name
+    })
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!deletingItem) return
+
+    try {
+      setSaving(true)
+      
+      if (deletingItem.type === 'aspect') {
+        // Check if aspect can be deleted
+        const usageCheck = await checkAssessmentAspectUsage(deletingItem.id)
+        
+        if (!usageCheck.canDelete) {
+          console.log('🚫 Cannot delete aspect:', deletingItem.name, 'Reason:', usageCheck.reason)
+          toast({
+            title: "❌ Tidak Dapat Menghapus",
+            description: `Aspek "${deletingItem.name}" sedang digunakan di sistem dan tidak dapat dihapus`,
+          })
+          // Close dialog and reset state even if deletion failed
+          setIsDeleteDialogOpen(false)
+          setDeletingItem(null)
+          setSaving(false)
+          return
+        }
+        
+        await deleteAssessmentAspect(deletingItem.id)
+        toast({
+          title: "✅ Berhasil",
+          description: `Aspek penilaian "${deletingItem.name}" berhasil dihapus`,
+        })
+      } else {
+        // Check if sub aspect can be deleted
+        const usageCheck = await checkAssessmentSubAspectUsage(deletingItem.id)
+        
+        if (!usageCheck.canDelete) {
+          console.log('🚫 Cannot delete sub aspect:', deletingItem.name, 'Reason:', usageCheck.reason)
+          toast({
+            title: "❌ Tidak Dapat Menghapus",
+            description: `Sub aspek "${deletingItem.name}" sedang digunakan di sistem dan tidak dapat dihapus`,
+          })
+          // Close dialog and reset state even if deletion failed
+          setIsDeleteDialogOpen(false)
+          setDeletingItem(null)
+          setSaving(false)
+          return
+        }
+        
+        await deleteAssessmentSubAspect(deletingItem.id)
+        toast({
+          title: "✅ Berhasil",
+          description: `Sub aspek "${deletingItem.name}" berhasil dihapus`,
+        })
+      }
+      
+      await loadData()
+      setIsDeleteDialogOpen(false)
+      setDeletingItem(null)
+    } catch (error) {
+      console.error('Error deleting item:', error)
+      toast({
+        title: "Error",
+        description: `Gagal menghapus ${deletingItem?.type === 'aspect' ? 'aspek penilaian' : 'sub aspek'}. ${error instanceof Error ? error.message : 'Terjadi kesalahan.'}`,
+        variant: "destructive",
+      })
+      // Close dialog and reset state even if error occurred
+      setIsDeleteDialogOpen(false)
+      setDeletingItem(null)
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (loading) {
@@ -594,6 +688,16 @@ export default function AssessmentManagement() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteAspect(aspect)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   </CollapsibleTrigger>
@@ -621,13 +725,22 @@ export default function AssessmentManagement() {
                                 </p>
                               )}
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openSubAspectDialog(subAspect)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openSubAspectDialog(subAspect)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteSubAspect(subAspect)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -639,6 +752,49 @@ export default function AssessmentManagement() {
           })
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+            <DialogDescription>
+              Apakah Anda yakin ingin menghapus{' '}
+              <strong>
+                {deletingItem?.type === 'aspect' ? 'aspek penilaian' : 'sub aspek'}{' '}
+                "{deletingItem?.name}"
+              </strong>
+              ?
+              {deletingItem?.type === 'aspect' && (
+                <span className="block mt-2 text-red-600">
+                  Peringatan: Ini akan menghapus aspek penilaian dan semua sub aspek terkait.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsDeleteDialogOpen(false)
+                setDeletingItem(null)
+              }}
+              disabled={saving}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={saving}
+            >
+              {saving ? 'Menghapus...' : 'Hapus'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
