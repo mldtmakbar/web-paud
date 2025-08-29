@@ -25,23 +25,53 @@ export async function getStudentsByParentId(parentId: string) {
   console.log('🔍 [DB] getStudentsByParentId called with parentId:', parentId)
   
   try {
-    // Method 1: Direct query to students table
-    console.log('📋 [DB] Trying direct query to students table...')
-    const { data: allStudents, error: allStudentsError } = await supabase
-      .from('students')
-      .select('*')
+    // Query students through user_accounts table to get proper parent-student relationship
+    console.log('📋 [DB] Querying students via user_accounts parent relationship...')
     
-    console.log('📊 [DB] All students in database:', allStudents)
-    console.log('❌ [DB] Query error:', allStudentsError)
+    // First, get the student IDs associated with this parent
+    const { data: parentAccounts, error: parentError } = await supabase
+      .from('user_accounts')
+      .select('user_id')
+      .eq('id', parentId)
+      .eq('role', 'parent')
     
-    if (allStudentsError) {
-      console.error('Error querying students table:', allStudentsError)
+    console.log('�‍👩‍👧‍👦 [DB] Parent accounts found:', parentAccounts)
+    
+    if (parentError) {
+      console.error('Error querying parent accounts:', parentError)
       return []
     }
 
-    // For now, return all students to debug the structure
-    // Later we'll filter by the actual parent relationship
-    return allStudents || []
+    if (!parentAccounts || parentAccounts.length === 0) {
+      console.log('❌ [DB] No parent account found for ID:', parentId)
+      return []
+    }
+
+    // Get student IDs from parent accounts
+    const studentIds = parentAccounts.map(account => account.user_id).filter(Boolean)
+    
+    if (studentIds.length === 0) {
+      console.log('❌ [DB] No student IDs found for parent:', parentId)
+      return []
+    }
+
+    console.log('👶 [DB] Student IDs for this parent:', studentIds)
+
+    // Now query the actual students data
+    const { data: students, error: studentsError } = await supabase
+      .from('students')
+      .select('*')
+      .in('id', studentIds)
+    
+    console.log('📊 [DB] Students found:', students)
+    console.log('❌ [DB] Students query error:', studentsError)
+    
+    if (studentsError) {
+      console.error('Error querying students:', studentsError)
+      return []
+    }
+
+    return students || []
     
   } catch (error) {
     console.error('Exception in getStudentsByParentId:', error)

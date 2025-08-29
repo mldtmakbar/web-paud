@@ -77,9 +77,16 @@ export default function ParentDashboardWithId() {
   const loadStudentsData = async () => {
     try {
       setDataLoading(true)
-      console.log('Loading students data for parent ID:', userId)
+      // Use the logged-in user's ID, not the URL parameter
+      const parentId = user?.id
+      if (!parentId) {
+        console.error('No parent ID available from user context')
+        return
+      }
       
-      const studentsData = await getStudentsByParentId(userId)
+      console.log('Loading students data for parent ID:', parentId)
+      
+      const studentsData = await getStudentsByParentId(parentId)
       console.log('Students data received:', studentsData)
       
       const classesData = await getClasses()
@@ -88,9 +95,10 @@ export default function ParentDashboardWithId() {
       setStudents(studentsData)
       setClasses(classesData)
       
-      // Load profile data from first student's parent info
+      // Load profile data from the logged-in parent's info, not from student data
       if (studentsData.length > 0) {
         const student = studentsData[0]
+        // Set profile data from student's parent info (this should match the logged-in parent)
         setProfileData({
           father_name: student.father_name || '',
           father_occupation: student.father_occupation || '',
@@ -107,7 +115,7 @@ export default function ParentDashboardWithId() {
         setSelectedStudent(studentsData[0])
         console.log('Auto-selected first student and loaded profile data:', studentsData[0])
       } else {
-        console.log('No students found for parent ID:', userId)
+        console.log('No students found for parent ID:', parentId)
       }
     } catch (error) {
       console.error('Error loading students data:', error)
