@@ -13,10 +13,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
-import { CalendarDays, User, GraduationCap, CreditCard, FileText, Heart, Phone, MapPin, AlertCircle, CheckCircle, Clock, XCircle, Edit, Save, X, Eye, EyeOff, Settings, BookOpen, Calendar } from "lucide-react"
-import { getStudentsByParentId, getAttendance, getPayments, getGrades, getClasses } from "@/lib/db"
-import { Student, Attendance, Payment, Grade, Class, StudentGradeView } from "@/lib/types"
+import { CalendarDays, User, GraduationCap, CreditCard, FileText, Heart, Phone, MapPin, AlertCircle, CheckCircle, Clock, XCircle, Edit, Save, X, Eye, EyeOff, Settings, BookOpen, Calendar, Download } from "lucide-react"
+import { getStudentsByParentId, getAttendance, getPayments, getGrades, getClasses, getTeachers } from "@/lib/db"
+import { Student, Attendance, Payment, Grade, Class, StudentGradeView, Teacher } from "@/lib/types"
 import { supabase } from "@/lib/supabase"
+import { exportTranscript } from "@/lib/pdf-export"
 
 export default function ParentDashboardWithId() {
   const { user, loading } = useAuth()
@@ -31,6 +32,7 @@ export default function ParentDashboardWithId() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [grades, setGrades] = useState<StudentGradeView[]>([])
   const [classes, setClasses] = useState<Class[]>([])
+  const [teachers, setTeachers] = useState<Teacher[]>([])
   const [dataLoading, setDataLoading] = useState(true)
   
   // Profile editing states
@@ -92,8 +94,12 @@ export default function ParentDashboardWithId() {
       const classesData = await getClasses()
       console.log('Classes data received:', classesData)
       
+      const teachersData = await getTeachers()
+      console.log('Teachers data received:', teachersData)
+      
       setStudents(studentsData)
       setClasses(classesData)
+      setTeachers(teachersData)
       
       // Load profile data from the logged-in parent's info, not from student data
       if (studentsData.length > 0) {
@@ -144,6 +150,19 @@ export default function ParentDashboardWithId() {
     if (!classId) return 'Belum ada kelas'
     const studentClass = classes.find(c => c.id === classId)
     return studentClass ? studentClass.name : 'Kelas tidak ditemukan'
+  }
+
+  const getClassTeacher = (classId: string | null) => {
+    if (!classId) return 'Belum ada wali kelas'
+    const studentClass = classes.find(c => c.id === classId)
+    
+    if (studentClass && studentClass.teacher_id) {
+      // Find teacher from teachers data
+      const teacher = teachers.find(t => t.id === studentClass.teacher_id)
+      return teacher ? teacher.name : 'Guru tidak ditemukan'
+    }
+    
+    return 'Wali kelas belum ditentukan'
   }
 
   const calculateAge = (birthDate: string) => {
@@ -261,6 +280,45 @@ export default function ParentDashboardWithId() {
       toast({
         title: "Error",
         description: "Terjadi kesalahan saat mengubah password.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDownloadTranscript = async () => {
+    if (!selectedStudent) {
+      toast({
+        title: "Error",
+        description: "Pilih siswa terlebih dahulu",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      toast({
+        title: "Info",
+        description: "Sedang menyiapkan transkrip...",
+        variant: "default",
+      })
+
+      await exportTranscript({
+        student: selectedStudent,
+        payments: payments,
+        attendance: attendance,
+        grades: grades
+      })
+
+      toast({
+        title: "Berhasil",
+        description: "Transkrip berhasil diunduh!",
+        variant: "default",
+      })
+    } catch (error) {
+      console.error('Error downloading transcript:', error)
+      toast({
+        title: "Error",
+        description: "Gagal mengunduh transkrip. Silakan coba lagi.",
         variant: "destructive",
       })
     }
@@ -695,73 +753,168 @@ export default function ParentDashboardWithId() {
                 <TabsContent value="student" className="space-y-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <User className="h-5 w-5" />
-                        Profil Anak
-                      </CardTitle>
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="flex items-center gap-2">
+                          <User className="h-5 w-5" />
+                          Informasi Lengkap Siswa
+                        </CardTitle>
+                        <Button 
+                          onClick={handleDownloadTranscript}
+                          className="flex items-center gap-2"
+                          size="sm"
+                        >
+                          <Download className="h-4 w-4" />
+                          Unduh Transkrip
+                        </Button>
+                      </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex flex-col md:flex-row gap-6">
-                        <div className="flex-shrink-0">
-                          <Avatar className="h-24 w-24">
-                            <AvatarImage src="/placeholder-user.jpg" alt={selectedStudent.name} />
-                            <AvatarFallback className="text-2xl">
-                              {selectedStudent.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                        </div>
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <h3 className="text-2xl font-bold mb-2">{selectedStudent.name}</h3>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex items-center gap-2">
-                                <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                                <span>Kelas: {getStudentClass(selectedStudent.class_id)}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                                <span>Umur: {calculateAge(selectedStudent.birth_date)} tahun</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4 text-muted-foreground" />
-                                <span>Gender: {selectedStudent.gender}</span>
-                              </div>
-                              {selectedStudent.nisn && (
-                                <div className="flex items-center gap-2">
-                                  <FileText className="h-4 w-4 text-muted-foreground" />
-                                  <span>NISN: {selectedStudent.nisn}</span>
-                                </div>
-                              )}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Student Profile Section */}
+                        <div className="space-y-6">
+                          <div className="flex items-center gap-4">
+                            <Avatar className="h-20 w-20">
+                              <AvatarImage src="/placeholder-user.jpg" alt={selectedStudent.name} />
+                              <AvatarFallback className="text-xl">
+                                {selectedStudent.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <h3 className="text-2xl font-bold">{selectedStudent.name}</h3>
+                              <p className="text-muted-foreground">
+                                Kelas: {getStudentClass(selectedStudent.class_id)}
+                              </p>
+                              <Badge variant={selectedStudent.status === 'active' ? 'default' : 'secondary'}>
+                                {selectedStudent.status === 'active' ? 'Aktif' : 'Non-Aktif'}
+                              </Badge>
                             </div>
                           </div>
-                          <div className="space-y-2 text-sm">
-                            {selectedStudent.blood_type && (
-                              <div className="flex items-center gap-2">
-                                <Heart className="h-4 w-4 text-red-500" />
-                                <span>Golongan Darah: {selectedStudent.blood_type}</span>
+
+                          {/* Data Diri */}
+                          <div className="space-y-4">
+                            <h4 className="font-semibold text-lg border-b pb-2">Data Diri</h4>
+                            <div className="grid grid-cols-1 gap-3 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Nama Lengkap:</span>
+                                <span className="font-medium">{selectedStudent.name}</span>
                               </div>
-                            )}
-                            {selectedStudent.allergies && (
-                              <div className="flex items-center gap-2">
-                                <AlertCircle className="h-4 w-4 text-yellow-500" />
-                                <span>Alergi: {selectedStudent.allergies}</span>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">NISN:</span>
+                                <span className="font-medium">{selectedStudent.nisn || 'Belum diisi'}</span>
                               </div>
-                            )}
-                            {selectedStudent.emergency_contact && (
-                              <div className="flex items-center gap-2">
-                                <Phone className="h-4 w-4 text-blue-500" />
-                                <span>Kontak Darurat: {selectedStudent.emergency_contact}</span>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Tanggal Lahir:</span>
+                                <span className="font-medium">
+                                  {new Date(selectedStudent.birth_date).toLocaleDateString('id-ID')}
+                                </span>
                               </div>
-                            )}
-                            {selectedStudent.emergency_phone && (
-                              <div className="flex items-center gap-2">
-                                <Phone className="h-4 w-4 text-blue-500" />
-                                <span>No. Darurat: {selectedStudent.emergency_phone}</span>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Umur:</span>
+                                <span className="font-medium">{calculateAge(selectedStudent.birth_date)} tahun</span>
                               </div>
-                            )}
-                            <Badge variant={selectedStudent.status === 'active' ? 'default' : 'secondary'}>
-                              {selectedStudent.status === 'active' ? 'Aktif' : 'Non-Aktif'}
-                            </Badge>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Jenis Kelamin:</span>
+                                <span className="font-medium">{selectedStudent.gender}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Golongan Darah:</span>
+                                <span className="font-medium">{selectedStudent.blood_type || 'Belum diisi'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Alergi:</span>
+                                <span className="font-medium">{selectedStudent.allergies || 'Tidak ada'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Academic & Class Info */}
+                        <div className="space-y-6">
+                          {/* Wali Kelas */}
+                          <div className="space-y-4">
+                            <h4 className="font-semibold text-lg border-b pb-2">Informasi Kelas</h4>
+                            <div className="bg-blue-50 p-4 rounded-lg">
+                              <div className="flex items-center gap-2 mb-2">
+                                <GraduationCap className="h-5 w-5 text-blue-600" />
+                                <span className="font-semibold text-blue-800">
+                                  Kelas: {getStudentClass(selectedStudent.class_id)}
+                                </span>
+                              </div>
+                              <div className="text-sm text-blue-700">
+                                <p>Wali Kelas: <span className="font-medium">{getClassTeacher(selectedStudent.class_id)}</span></p>
+                                <p>Tahun Ajaran: <span className="font-medium">2024/2025</span></p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Statistik Kehadiran */}
+                          <div className="space-y-4">
+                            <h4 className="font-semibold text-lg border-b pb-2">Statistik Kehadiran</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="bg-green-50 p-3 rounded-lg text-center">
+                                <div className="text-2xl font-bold text-green-600">
+                                  {attendance.filter(a => a.status === 'present').length}
+                                </div>
+                                <p className="text-sm text-green-700">Jumlah Kehadiran</p>
+                              </div>
+                              <div className="bg-red-50 p-3 rounded-lg text-center">
+                                <div className="text-2xl font-bold text-red-600">
+                                  {attendance.filter(a => a.status === 'absent').length}
+                                </div>
+                                <p className="text-sm text-red-700">Jumlah Tidak Hadir</p>
+                              </div>
+                              <div className="bg-yellow-50 p-3 rounded-lg text-center">
+                                <div className="text-2xl font-bold text-yellow-600">
+                                  {attendance.filter(a => a.status === 'sick').length}
+                                </div>
+                                <p className="text-sm text-yellow-700">Jumlah Sakit</p>
+                              </div>
+                              <div className="bg-blue-50 p-3 rounded-lg text-center">
+                                <div className="text-2xl font-bold text-blue-600">
+                                  {attendance.length}
+                                </div>
+                                <p className="text-sm text-blue-700">Total Pertemuan</p>
+                              </div>
+                            </div>
+                            
+                            {/* Persentase Kehadiran */}
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Persentase Kehadiran</span>
+                                <span className="text-lg font-bold text-green-600">
+                                  {attendance.length > 0 
+                                    ? Math.round((attendance.filter(a => a.status === 'present').length / attendance.length) * 100)
+                                    : 0}%
+                                </span>
+                              </div>
+                              <Progress 
+                                value={attendance.length > 0 
+                                  ? (attendance.filter(a => a.status === 'present').length / attendance.length) * 100
+                                  : 0} 
+                                className="h-2"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Contact Emergency */}
+                          <div className="space-y-4">
+                            <h4 className="font-semibold text-lg border-b pb-2">Kontak Darurat</h4>
+                            <div className="bg-orange-50 p-4 rounded-lg">
+                              <div className="text-sm space-y-2">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Nama Kontak:</span>
+                                  <span className="font-medium">
+                                    {selectedStudent.emergency_contact || 'Belum diisi'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">No. Telepon:</span>
+                                  <span className="font-medium">
+                                    {selectedStudent.emergency_phone || 'Belum diisi'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -932,12 +1085,36 @@ export default function ParentDashboardWithId() {
                 <TabsContent value="grades" className="space-y-4">
                   {grades.length > 0 ? (
                     <div className="space-y-4">
+                      {/* Header with download button */}
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h2 className="text-2xl font-bold">Laporan Nilai Siswa</h2>
+                          <p className="text-muted-foreground">
+                            Hasil penilaian dari guru untuk {selectedStudent.name}
+                          </p>
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            exportTranscript({
+                              student: selectedStudent,
+                              payments: payments,
+                              attendance: attendance,
+                              grades: grades
+                            })
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <FileText className="h-4 w-4" />
+                          Unduh Transkrip Nilai
+                        </Button>
+                      </div>
+
                       <Card>
                         <CardHeader>
                           <CardTitle>Ringkasan Nilai</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="text-center p-4 bg-blue-50 rounded-lg">
                               <div className="text-2xl font-bold text-blue-600">
                                 {new Set(grades.map(g => g.aspect_name)).size}
@@ -949,6 +1126,12 @@ export default function ParentDashboardWithId() {
                                 {grades.length}
                               </div>
                               <p className="text-sm text-muted-foreground">Total Penilaian</p>
+                            </div>
+                            <div className="text-center p-4 bg-purple-50 rounded-lg">
+                              <div className="text-2xl font-bold text-purple-600">
+                                {Array.from(new Set(grades.map(g => g.semester_name))).length}
+                              </div>
+                              <p className="text-sm text-muted-foreground">Semester Dinilai</p>
                             </div>
                           </div>
                         </CardContent>

@@ -4,57 +4,31 @@ import type React from "react"
 
 import Navigation from "@/components/navigation"
 import Footer from "@/components/footer"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { MapPin, Phone, Mail, Clock, Send } from "lucide-react"
-import { useState } from "react"
+import { MapPin, Phone, Mail, Clock } from "lucide-react"
 
 export default function KontakPage() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    subject: "",
-    message: "",
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Handle form submission here
-    console.log("Form submitted:", formData)
-    alert("Terima kasih! Pesan Anda telah terkirim. Kami akan segera menghubungi Anda.")
-    setFormData({ name: "", email: "", phone: "", subject: "", message: "" })
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
-  }
 
   const contactInfo = [
     {
       icon: <MapPin className="h-6 w-6 text-primary" />,
       title: "Alamat",
-      content: "Jl. Pendidikan No. 123\nJakarta Selatan, 12345",
+      content: "Jl. Damai 3 No.06 Blok M12\nRT.12/RW.36, Bahagia, Kec. Babelan\nKabupaten Bekasi, Jawa Barat 17610",
     },
     {
       icon: <Phone className="h-6 w-6 text-primary" />,
       title: "Telepon",
-      content: "(021) 1234-5678\n0812-3456-7890",
+      content: "081295932008",
     },
     {
       icon: <Mail className="h-6 w-6 text-primary" />,
       title: "Email",
-      content: "info@tkceria.com\nadmin@tkceria.com",
+      content: "paudanidabekasi@gmail.com",
     },
     {
       icon: <Clock className="h-6 w-6 text-primary" />,
       title: "Jam Operasional",
-      content: "Senin - Jumat: 07:00 - 16:00\nSabtu: 08:00 - 12:00",
+      content: "Senin - Jumat: 09:00 - 17:00",
     },
   ]
 
@@ -68,7 +42,7 @@ export default function KontakPage() {
           <h1 className="text-4xl font-bold text-foreground mb-6 font-serif">Hubungi Kami</h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
             Kami siap membantu Anda dengan informasi lebih lanjut tentang program pendidikan dan proses pendaftaran di
-            TK Ceria.
+            TK Anida.
           </p>
         </div>
       </section>
@@ -88,98 +62,7 @@ export default function KontakPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            {/* Contact Form */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-serif">Kirim Pesan</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
-                        Nama Lengkap *
-                      </label>
-                      <Input
-                        id="name"
-                        name="name"
-                        type="text"
-                        required
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Masukkan nama lengkap"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
-                        Nomor Telepon *
-                      </label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        required
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="Masukkan nomor telepon"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
-                      Email *
-                    </label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="Masukkan alamat email"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="subject" className="block text-sm font-medium text-foreground mb-2">
-                      Subjek *
-                    </label>
-                    <Input
-                      id="subject"
-                      name="subject"
-                      type="text"
-                      required
-                      value={formData.subject}
-                      onChange={handleChange}
-                      placeholder="Masukkan subjek pesan"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-foreground mb-2">
-                      Pesan *
-                    </label>
-                    <Textarea
-                      id="message"
-                      name="message"
-                      required
-                      rows={5}
-                      value={formData.message}
-                      onChange={handleChange}
-                      placeholder="Tulis pesan Anda di sini..."
-                    />
-                  </div>
-
-                  <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-                    <Send className="mr-2 h-4 w-4" />
-                    Kirim Pesan
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
+          <div className="max-w-4xl mx-auto">
             {/* Map and Additional Info */}
             <div className="space-y-6">
               <Card>
@@ -187,13 +70,32 @@ export default function KontakPage() {
                   <CardTitle className="font-serif">Lokasi Kami</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="aspect-video bg-muted rounded-lg flex items-center justify-center mb-4">
-                    <p className="text-muted-foreground">Peta Lokasi TK Ceria</p>
+                  <div className="aspect-video bg-muted rounded-lg overflow-hidden mb-4">
+                    <iframe
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3966.0236080193334!2d107.02780741430736!3d-6.180720263780979!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e698d3e8b8b8b8b%3A0x1234567890abcdef!2sJl.%20Damai%203%20No.06%20Blok%20M12%2C%20RT.12%2FRW.36%2C%20Bahagia%2C%20Kec.%20Babelan%2C%20Kabupaten%20Bekasi%2C%20Jawa%20Barat%2017610!5e0!3m2!1sen!2sid!4v1629876543210!5m2!1sen!2sid"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Lokasi TK Anida"
+                    />
                   </div>
-                  <p className="text-muted-foreground text-sm">
-                    TK Ceria berlokasi strategis di Jakarta Selatan dengan akses mudah menggunakan transportasi umum
-                    maupun kendaraan pribadi.
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-muted-foreground text-sm">
+                      TK Anida berlokasi strategis di Bekasi dengan akses mudah menggunakan transportasi umum
+                      maupun kendaraan pribadi.
+                    </p>
+                    <a
+                      href="https://maps.app.goo.gl/KNMem1SmgaxoWpkt9"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:text-primary/80 text-sm font-medium ml-4 whitespace-nowrap"
+                    >
+                      Buka di Maps →
+                    </a>
+                  </div>
                 </CardContent>
               </Card>
 

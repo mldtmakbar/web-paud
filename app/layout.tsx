@@ -16,9 +16,9 @@ const fredoka = Fredoka({
 })
 
 export const metadata = {
-  title: "TK Ceria - Taman Kanak-Kanak Terbaik",
+  title: "TK Anida - Taman Kanak-Kanak Terbaik",
   description:
-    "TK Ceria menyediakan pendidikan berkualitas untuk anak-anak dengan lingkungan yang aman dan menyenangkan.",
+    "TK Anida menyediakan pendidikan berkualitas untuk anak-anak dengan lingkungan yang aman dan menyenangkan.",
     generator: 'v0.app'
 }
 

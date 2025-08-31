@@ -196,7 +196,7 @@ export default function TeacherDashboardWithId() {
         {activeTab === "overview" && (
           <div>
             <h3 className="text-lg font-semibold mb-4">Dashboard Guru</h3>
-            <p>Selamat datang di dashboard guru TK Ceria. Gunakan tab di atas untuk mengelola kehadiran dan nilai siswa.</p>
+            <p>Selamat datang di dashboard guru TK Anida. Gunakan tab di atas untuk mengelola kehadiran dan nilai siswa.</p>
           </div>
         )}
         {activeTab === "attendance" && <AttendanceEditor />}

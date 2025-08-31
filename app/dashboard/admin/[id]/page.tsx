@@ -209,7 +209,7 @@ export default function AdminDashboardWithId() {
         {activeTab === "overview" && (
           <div>
             <h3 className="text-lg font-semibold mb-4">Dashboard Overview</h3>
-            <p>Selamat datang di dashboard administrator TK Ceria. Gunakan tab di atas untuk mengelola sistem.</p>
+            <p>Selamat datang di dashboard administrator TK Anida. Gunakan tab di atas untuk mengelola sistem.</p>
           </div>
         )}
         {activeTab === "students" && <StudentManagement />}

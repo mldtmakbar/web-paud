@@ -509,9 +509,9 @@ export const mockNews: News[] = [
     id: "news1",
     title: "Penerimaan Siswa Baru Tahun Ajaran 2025/2026",
     content:
-      "TK Ceria membuka pendaftaran siswa baru untuk tahun ajaran 2025/2026. Pendaftaran dimulai dari tanggal 1 Februari 2025 hingga 31 Maret 2025. Kami menyediakan program TK A, TK B, dan Kelompok Bermain dengan fasilitas lengkap dan tenaga pengajar yang berpengalaman.",
-    excerpt: "TK Ceria membuka pendaftaran siswa baru untuk tahun ajaran 2025/2026 mulai 1 Februari 2025.",
-    author: "Admin TK Ceria",
+      "TK Anida membuka pendaftaran siswa baru untuk tahun ajaran 2025/2026. Pendaftaran dimulai dari tanggal 1 Februari 2025 hingga 31 Maret 2025. Kami menyediakan program TK A, TK B, dan Kelompok Bermain dengan fasilitas lengkap dan tenaga pengajar yang berpengalaman.",
+    excerpt: "TK Anida membuka pendaftaran siswa baru untuk tahun ajaran 2025/2026 mulai 1 Februari 2025.",
+    author: "Admin TK Anida",
     publishDate: "2025-01-15",
     status: "published",
     category: "Pengumuman",
@@ -524,8 +524,8 @@ export const mockNews: News[] = [
     id: "news2",
     title: "Kegiatan Outing Class ke Kebun Binatang",
     content:
-      "Siswa-siswi TK Ceria mengadakan kegiatan outing class ke Kebun Binatang Ragunan pada hari Jumat, 10 Januari 2025. Kegiatan ini bertujuan untuk mengenalkan berbagai jenis hewan kepada anak-anak sambil belajar di luar kelas. Semua siswa sangat antusias dan senang mengikuti kegiatan ini.",
-    excerpt: "Siswa TK Ceria mengadakan outing class ke Kebun Binatang Ragunan untuk belajar mengenal hewan.",
+      "Siswa-siswi TK Anida mengadakan kegiatan outing class ke Kebun Binatang Ragunan pada hari Jumat, 10 Januari 2025. Kegiatan ini bertujuan untuk mengenalkan berbagai jenis hewan kepada anak-anak sambil belajar di luar kelas. Semua siswa sangat antusias dan senang mengikuti kegiatan ini.",
+    excerpt: "Siswa TK Anida mengadakan outing class ke Kebun Binatang Ragunan untuk belajar mengenal hewan.",
     author: "Bu Sarah Wijaya",
     publishDate: "2025-01-12",
     status: "published",
@@ -537,10 +537,10 @@ export const mockNews: News[] = [
   },
   {
     id: "news3",
-    title: "Perayaan Hari Kartini di TK Ceria",
+    title: "Perayaan Hari Kartini di TK Anida",
     content:
-      "Dalam rangka memperingati Hari Kartini, TK Ceria mengadakan berbagai kegiatan menarik seperti fashion show kebaya anak, lomba mewarnai, dan bercerita tentang tokoh pahlawan wanita Indonesia. Kegiatan ini bertujuan untuk mengenalkan nilai-nilai kepahlawanan dan budaya Indonesia kepada anak-anak.",
-    excerpt: "TK Ceria merayakan Hari Kartini dengan fashion show kebaya dan berbagai lomba menarik.",
+      "Dalam rangka memperingati Hari Kartini, TK Anida mengadakan berbagai kegiatan menarik seperti fashion show kebaya anak, lomba mewarnai, dan bercerita tentang tokoh pahlawan wanita Indonesia. Kegiatan ini bertujuan untuk mengenalkan nilai-nilai kepahlawanan dan budaya Indonesia kepada anak-anak.",
+    excerpt: "TK Anida merayakan Hari Kartini dengan fashion show kebaya dan berbagai lomba menarik.",
     author: "Bu Rina Sari",
     publishDate: "2024-04-21",
     status: "published",

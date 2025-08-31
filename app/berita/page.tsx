@@ -31,7 +31,7 @@ export default async function BeritaPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl font-bold text-foreground mb-6 font-serif">Berita & Kegiatan</h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Ikuti perkembangan terbaru dan berbagai kegiatan menarik di TK Ceria. Tetap terhubung dengan komunitas
+            Ikuti perkembangan terbaru dan berbagai kegiatan menarik di TK Anida. Tetap terhubung dengan komunitas
             sekolah kami.
           </p>
         </div>

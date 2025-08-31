@@ -25,7 +25,7 @@ export default function HomePage() {
     {
       icon: <Award className="h-8 w-8 text-primary" />,
       title: "Prestasi Terbaik",
-      description: "Lulusan TK Ceria siap melanjutkan ke jenjang pendidikan selanjutnya",
+      description: "Lulusan TK Anida siap melanjutkan ke jenjang pendidikan selanjutnya",
     },
   ]
 
@@ -39,7 +39,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6 font-serif">
-                Selamat Datang di <span className="text-primary">TK Ceria</span>
+                Selamat Datang di <span className="text-primary">TK Anida</span>
               </h1>
               <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
                 Tempat terbaik untuk memulai perjalanan pendidikan anak Anda. Kami menyediakan lingkungan belajar yang
@@ -57,7 +57,7 @@ export default function HomePage() {
             <div className="relative">
               <img
                 src="/happy-children-playing-in-kindergarten-classroom-c.png"
-                alt="Anak-anak bermain di TK Ceria"
+                alt="Anak-anak bermain di TK Anida"
                 className="rounded-lg shadow-lg w-full"
               />
             </div>
@@ -69,7 +69,7 @@ export default function HomePage() {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4 font-serif">Mengapa Memilih TK Ceria?</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-4 font-serif">Mengapa Memilih TK Anida?</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Kami berkomitmen memberikan pendidikan terbaik dengan pendekatan yang holistik untuk mengembangkan potensi
               setiap anak.
@@ -93,7 +93,7 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="bg-primary py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4 font-serif">Siap Bergabung dengan Keluarga TK Ceria?</h2>
+          <h2 className="text-3xl font-bold text-white mb-4 font-serif">Siap Bergabung dengan Keluarga TK Anida?</h2>
           <p className="text-white/90 mb-8 max-w-2xl mx-auto">
             Berikan yang terbaik untuk masa depan anak Anda. Hubungi kami untuk informasi lebih lanjut tentang program
             dan pendaftaran.

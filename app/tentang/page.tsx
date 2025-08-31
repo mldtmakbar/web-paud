@@ -34,9 +34,9 @@ export default function TentangPage() {
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-secondary/10 to-accent/10 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold text-foreground mb-6 font-serif">Tentang TK Ceria</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-6 font-serif">Tentang TK Anida</h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Sejak didirikan, TK Ceria telah berkomitmen untuk memberikan pendidikan terbaik bagi anak-anak Indonesia
+            Sejak didirikan, TK Anida telah berkomitmen untuk memberikan pendidikan terbaik bagi anak-anak Indonesia
             dengan pendekatan yang holistik dan menyenangkan.
           </p>
         </div>
@@ -50,7 +50,7 @@ export default function TentangPage() {
               <h2 className="text-3xl font-bold text-foreground mb-6 font-serif">Cerita Kami</h2>
               <div className="space-y-4 text-muted-foreground">
                 <p>
-                  TK Ceria didirikan dengan visi untuk menciptakan lingkungan belajar yang menyenangkan dan mendukung
+                  TK Anida didirikan dengan visi untuk menciptakan lingkungan belajar yang menyenangkan dan mendukung
                   perkembangan optimal setiap anak. Kami percaya bahwa setiap anak memiliki potensi unik yang perlu
                   dikembangkan dengan pendekatan yang tepat.
                 </p>
@@ -68,7 +68,7 @@ export default function TentangPage() {
             <div>
               <img
                 src="/kindergarten-teachers-with-children-in-classroom-l.png"
-                alt="Guru dan murid TK Ceria"
+                alt="Guru dan murid TK Anida"
                 className="rounded-lg shadow-lg w-full"
               />
             </div>

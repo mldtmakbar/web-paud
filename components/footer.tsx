@@ -7,14 +7,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Logo and Description */}
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-lg font-serif">TK</span>
-              </div>
-              <span className="font-bold text-xl text-foreground font-serif">TK Ceria</span>
+            <div className="flex items-center mb-4">
+              <span className="font-bold text-xl text-foreground font-serif">TK Anida</span>
             </div>
             <p className="text-muted-foreground mb-4 max-w-md">
-              TK Ceria adalah taman kanak-kanak yang berkomitmen memberikan pendidikan berkualitas dengan pendekatan
+              TK Anida adalah taman kanak-kanak yang berkomitmen memberikan pendidikan berkualitas dengan pendekatan
               yang menyenangkan dan mengembangkan potensi setiap anak.
             </p>
           </div>
@@ -26,18 +23,20 @@ export default function Footer() {
               <div className="flex items-start space-x-3">
                 <MapPin className="h-5 w-5 text-primary mt-0.5" />
                 <span className="text-muted-foreground text-sm">
-                  Jl. Pendidikan No. 123
+                  Jl. Damai 3 No.06 Blok M12, RT.12/RW.36
                   <br />
-                  Jakarta Selatan, 12345
+                  Bahagia, Kec. Babelan, Kabupaten Bekasi
+                  <br />
+                  Jawa Barat 17610
                 </span>
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="h-5 w-5 text-primary" />
-                <span className="text-muted-foreground text-sm">(021) 1234-5678</span>
+                <span className="text-muted-foreground text-sm">081295932008</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Mail className="h-5 w-5 text-primary" />
-                <span className="text-muted-foreground text-sm">info@tkceria.com</span>
+                <span className="text-muted-foreground text-sm">paudanidabekasi@gmail.com</span>
               </div>
             </div>
           </div>
@@ -50,7 +49,7 @@ export default function Footer() {
                 <Clock className="h-5 w-5 text-primary" />
                 <div className="text-muted-foreground text-sm">
                   <div>Senin - Jumat</div>
-                  <div>07:00 - 16:00</div>
+                  <div>09:00 - 17:00</div>
                 </div>
               </div>
             </div>
@@ -58,7 +57,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-border mt-8 pt-8 text-center">
-          <p className="text-muted-foreground text-sm">© 2024 TK Ceria. Semua hak dilindungi undang-undang.</p>
+          <p className="text-muted-foreground text-sm">© 2024 TK Anida. Semua hak dilindungi undang-undang.</p>
         </div>
       </div>
     </footer>

@@ -118,8 +118,8 @@ export default function LoginPage() {
                 <span className="text-white font-bold text-2xl font-serif">TK</span>
               </div>
             </div>
-            <CardTitle className="text-2xl font-serif">Login TK Ceria</CardTitle>
-            <p className="text-muted-foreground">Masuk ke sistem manajemen TK Ceria</p>
+            <CardTitle className="text-2xl font-serif">Login TK Anida</CardTitle>
+            <p className="text-muted-foreground">Masuk ke sistem manajemen TK Anida</p>
           </CardHeader>
           <CardContent>
             {error && (

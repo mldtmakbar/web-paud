@@ -40,17 +40,17 @@ export async function authenticateMock(
     {
       id: "admin",
       email: "admin@example.com", 
-      name: "Admin TK Ceria",
+      name: "Admin TK Anida",
       role: "admin" as const,
       username: "admin@example.com",
       phone: "081234567892"
     },
     {
       id: "admin2",
-      email: "admin@tkceria.com", 
-      name: "Admin TK Ceria",
+      email: "admin@tkanida.com", 
+      name: "Admin TK Anida",
       role: "admin" as const,
-      username: "admin@tkceria.com",
+      username: "admin@tkanida.com",
       phone: "081234567893"
     }
   ]
