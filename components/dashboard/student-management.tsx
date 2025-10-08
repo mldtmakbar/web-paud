@@ -27,6 +27,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { getStudents, addStudent, updateStudent, deleteStudent, getClasses, getAccounts, addAccount, updateAccount, deleteAccount } from '@/lib/database'
+import { hashPassword } from '@/lib/password'
 
 export function StudentManagement() {
   const [students, setStudents] = useState<Student[]>([])
@@ -228,23 +229,28 @@ export function StudentManagement() {
   async function handleCreateAccount(email: string, password: string) {
     if (!selectedStudent) return
 
-    const accountData = {
-      email,
-      password,
-      role: 'parent' as const,
-      user_id: selectedStudent.id,
-      user_name: `Ayah / Ibu - ${selectedStudent.name}`,
-      status: 'active' as const
-    }
-
     try {
+      // Hash password menggunakan bcrypt
+      const hashedPassword = await hashPassword(password)
+
+      const accountData = {
+        email,
+        password: hashedPassword,
+        role: 'parent' as const,
+        user_id: selectedStudent.id,
+        user_name: `Ayah / Ibu - ${selectedStudent.name}`,
+        status: 'active' as const
+      }
+
       const result = await addAccount(accountData)
       if (result) {
         await loadData() // Reload data to get updated accounts
         setIsAccountDialogOpen(false)
+        alert('Akun berhasil dibuat!')
       }
     } catch (error) {
       console.error('Error creating account:', error)
+      alert('Gagal membuat akun. Silakan coba lagi.')
     }
   }
 

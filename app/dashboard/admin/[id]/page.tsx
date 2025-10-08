@@ -12,7 +12,8 @@ import { PaymentTypesManagement } from "@/components/dashboard/payment-types-man
 import { NewsManagement } from "@/components/dashboard/news-management"
 import SemesterManagement from "@/components/dashboard/semester-management"
 import AssessmentManagement from "@/components/dashboard/assessment-management"
-import { Users, GraduationCap, BookOpen, CreditCard, Newspaper, Calendar, FileText } from "lucide-react"
+import { AccountManagement } from "@/components/dashboard/account-management"
+import { Users, GraduationCap, BookOpen, CreditCard, Newspaper, Calendar, FileText, Settings } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import type { LucideIcon } from "lucide-react"
 
@@ -187,7 +188,8 @@ export default function AdminDashboardWithId() {
             { id: "payment-types", label: "Jenis Pembayaran" },
             { id: "news", label: "Manajemen Berita" },
             { id: "semesters", label: "Manajemen Semester" },
-            { id: "assessments", label: "Aspek Penilaian" }
+            { id: "assessments", label: "Aspek Penilaian" },
+            { id: "account", label: "Akun Admin" }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -220,6 +222,7 @@ export default function AdminDashboardWithId() {
         {activeTab === "news" && <NewsManagement />}
         {activeTab === "semesters" && <SemesterManagement />}
         {activeTab === "assessments" && <AssessmentManagement />}
+        {activeTab === "account" && <AccountManagement />}
       </div>
     </div>
   )

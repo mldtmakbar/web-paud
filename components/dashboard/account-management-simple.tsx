@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { hashPassword, verifyPassword } from '@/lib/password'
 import { supabase } from '@/lib/supabase'
 
-export function AccountManagement() {
+export function AccountManagementSimple() {
   const { user } = useAuth()
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [showPassword, setShowPassword] = useState({
@@ -26,6 +26,30 @@ export function AccountManagement() {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleChangePassword = async () => {
+    console.log('🔄 handleChangePassword called')
+    console.log('User data:', user)
+    console.log('Password data:', { 
+      currentLength: passwordData.currentPassword.length,
+      newLength: passwordData.newPassword.length,
+      confirmLength: passwordData.confirmPassword.length
+    })
+    
+    // Basic validation
+    if (!passwordData.currentPassword) {
+      alert('Harap masukkan password saat ini')
+      return
+    }
+    
+    if (!passwordData.newPassword) {
+      alert('Harap masukkan password baru')
+      return
+    }
+    
+    if (!passwordData.confirmPassword) {
+      alert('Harap konfirmasi password baru')
+      return
+    }
+    
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert('Password baru dan konfirmasi password tidak cocok')
       return
@@ -38,70 +62,18 @@ export function AccountManagement() {
 
     try {
       setIsLoading(true)
+      console.log('✅ Starting password change process')
 
-      // Verifikasi password lama terlebih dahulu
-      let currentHashedPassword = ''
-      let isValidCurrentPassword = false
-
-      if (user?.role === 'parent' || user?.role === 'teacher') {
-        // Ambil password dari user_accounts table
-        const { data: userData, error: fetchError } = await supabase
-          .from('user_accounts')
-          .select('password')
-          .eq('id', user?.id)
-          .single()
-
-        if (fetchError || !userData) {
-          alert('Gagal memverifikasi password lama')
-          return
-        }
-
-        currentHashedPassword = userData.password
-
-        // Verifikasi password lama (bisa bcrypt atau plain text)
-        try {
-          isValidCurrentPassword = await verifyPassword(passwordData.currentPassword, currentHashedPassword)
-        } catch (error) {
-          // Fallback ke plain text jika bcrypt gagal
-          isValidCurrentPassword = passwordData.currentPassword === currentHashedPassword
-        }
-      } else {
-        // Ambil password dari users table (admin)
-        const { data: userData, error: fetchError } = await supabase
-          .from('users')
-          .select('password_hash')
-          .eq('id', user?.id)
-          .single()
-
-        if (fetchError || !userData) {
-          alert('Gagal memverifikasi password lama')
-          return
-        }
-
-        currentHashedPassword = userData.password_hash
-
-        // Verifikasi password lama (bisa bcrypt atau plain text)
-        try {
-          isValidCurrentPassword = await verifyPassword(passwordData.currentPassword, currentHashedPassword)
-        } catch (error) {
-          // Fallback ke plain text jika bcrypt gagal
-          isValidCurrentPassword = passwordData.currentPassword === currentHashedPassword
-        }
-      }
-
-      if (!isValidCurrentPassword) {
-        alert('Password lama tidak benar')
-        return
-      }
-
-      // Hash password baru
+      // Hash password baru langsung tanpa verifikasi dulu (untuk testing)
+      console.log('🔐 Hashing new password...')
       const hashedPassword = await hashPassword(passwordData.newPassword)
-
-      let updateError = null
+      console.log('✅ Password hashed successfully, length:', hashedPassword.length)
 
       // Update password berdasarkan role
+      let updateError = null
+      
       if (user?.role === 'parent' || user?.role === 'teacher') {
-        // Update password di user_accounts table
+        console.log('📝 Updating password in user_accounts table for role:', user.role)
         const { error } = await supabase
           .from('user_accounts')
           .update({
@@ -110,8 +82,9 @@ export function AccountManagement() {
           })
           .eq('id', user?.id)
         updateError = error
+        console.log('Update result:', { error })
       } else {
-        // Update password di users table (admin)
+        console.log('📝 Updating password in users table for admin')
         const { error } = await supabase
           .from('users')
           .update({
@@ -120,12 +93,14 @@ export function AccountManagement() {
           })
           .eq('id', user?.id)
         updateError = error
+        console.log('Update result:', { error })
       }
 
       if (updateError) {
-        console.error('Error updating password:', updateError)
-        alert('Gagal mengubah password. Silakan coba lagi.')
+        console.error('❌ Error updating password:', updateError)
+        alert(`Gagal mengubah password: ${updateError.message}`)
       } else {
+        console.log('✅ Password updated successfully')
         alert('Password berhasil diubah!')
         setIsChangingPassword(false)
         setPasswordData({
@@ -135,10 +110,11 @@ export function AccountManagement() {
         })
       }
     } catch (error) {
-      console.error('Error changing password:', error)
-      alert('Terjadi kesalahan saat mengubah password.')
+      console.error('❌ Error changing password:', error)
+      alert(`Terjadi kesalahan: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsLoading(false)
+      console.log('🏁 Password change process finished')
     }
   }
 
@@ -154,12 +130,12 @@ export function AccountManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Profil Admin */}
+      {/* Profil */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
-            Informasi Akun
+            Informasi Akun (Simple Version for Testing)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -173,12 +149,12 @@ export function AccountManagement() {
               <p className="text-sm font-semibold">{user.email}</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Username</Label>
-              <p className="text-sm font-semibold">{user.username}</p>
-            </div>
-            <div>
               <Label className="text-sm font-medium text-muted-foreground">Role</Label>
               <p className="text-sm font-semibold capitalize">{user.role}</p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">User ID</Label>
+              <p className="text-sm font-semibold">{user.id}</p>
             </div>
           </div>
         </CardContent>
@@ -189,24 +165,14 @@ export function AccountManagement() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <KeyIcon className="h-5 w-5" />
-            Keamanan Akun
+            Ganti Password (Testing Version - No Verification)
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!isChangingPassword ? (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Untuk menjaga keamanan akun, disarankan untuk mengubah password secara berkala.
-              </p>
-              <Button
-                onClick={() => setIsChangingPassword(true)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <KeyIcon className="h-4 w-4" />
-                Ubah Password
-              </Button>
-            </div>
+            <Button onClick={() => setIsChangingPassword(true)}>
+              Ganti Password
+            </Button>
           ) : (
             <div className="space-y-4">
               <div className="space-y-2">
@@ -293,9 +259,9 @@ export function AccountManagement() {
                 </Button>
                 <Button
                   onClick={handleChangePassword}
-                  disabled={isLoading || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                  disabled={isLoading}
                 >
-                  {isLoading ? 'Menyimpan...' : 'Simpan Password'}
+                  {isLoading ? 'Menyimpan...' : 'Simpan Password (Simple Test)'}
                 </Button>
               </div>
             </div>

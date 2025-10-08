@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { verifyPassword } from './password'
 
 export interface User {
   id: string
@@ -153,8 +154,24 @@ export async function loginWithCredentials(
     if (accountData) {
       console.log('User found in user_accounts table:', accountData)
       // User found in user_accounts table
-      // Verify password
-      if (accountData.password !== password) {
+      // Try bcrypt verification first, fallback to plain text comparison
+      let isValidPassword = false
+      
+      try {
+        // Try bcrypt verification first
+        isValidPassword = await verifyPassword(password, accountData.password)
+      } catch (error) {
+        console.log('Bcrypt verification failed, trying plain text comparison')
+        // Fallback to plain text comparison for old passwords
+        isValidPassword = password === accountData.password
+      }
+      
+      // If still not valid, try plain text comparison directly
+      if (!isValidPassword) {
+        isValidPassword = password === accountData.password
+      }
+      
+      if (!isValidPassword) {
         console.error('Invalid password for user:', identifier)
         return null
       }
@@ -243,7 +260,23 @@ export async function loginWithCredentials(
     }
 
     // Verify password for old users table
-    if (userData.password_hash !== password) {
+    let isValidPassword = false
+    
+    try {
+      // Try bcrypt verification first
+      isValidPassword = await verifyPassword(password, userData.password_hash)
+    } catch (error) {
+      console.log('Bcrypt verification failed for admin, trying plain text comparison')
+      // Fallback to plain text comparison for old passwords
+      isValidPassword = password === userData.password_hash
+    }
+    
+    // If still not valid, try plain text comparison directly
+    if (!isValidPassword) {
+      isValidPassword = password === userData.password_hash
+    }
+    
+    if (!isValidPassword) {
       console.error('Invalid password for user in users table')
       return null
     }

@@ -227,6 +227,32 @@ export default function ParentDashboardWithId() {
   }
 
   const handleChangePassword = async () => {
+    console.log('🔄 handleChangePassword called')
+    console.log('User data:', user)
+    console.log('Password data:', { 
+      currentLength: passwordData.currentPassword.length,
+      newLength: passwordData.newPassword.length,
+      confirmLength: passwordData.confirmPassword.length
+    })
+    
+    if (!passwordData.currentPassword) {
+      toast({
+        title: "Error",
+        description: "Harap masukkan password saat ini!",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    if (!passwordData.newPassword) {
+      toast({
+        title: "Error",
+        description: "Harap masukkan password baru!",
+        variant: "destructive",
+      })
+      return
+    }
+    
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast({
         title: "Error",
@@ -246,23 +272,35 @@ export default function ParentDashboardWithId() {
     }
 
     try {
-      // Update password in user_accounts table
+      console.log('✅ Starting password change process')
+      
+      // Import hashPassword function - pastikan ini ada di imports
+      const { hashPassword } = await import('@/lib/password')
+      
+      // Hash password baru
+      console.log('🔐 Hashing new password...')
+      const hashedPassword = await hashPassword(passwordData.newPassword)
+      console.log('✅ Password hashed successfully')
+
+      // Update password in user_accounts table menggunakan ID user yang benar
+      console.log('📝 Updating password in database for user ID:', user?.id)
       const { error } = await supabase
         .from('user_accounts')
         .update({
-          password: passwordData.newPassword, // In production, this should be hashed
+          password: hashedPassword, // Now properly hashed
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', userId)
+        .eq('id', user?.id) // Fixed: use user.id instead of userId
 
       if (error) {
-        console.error('Error updating password:', error)
+        console.error('❌ Error updating password:', error)
         toast({
           title: "Error",
-          description: "Gagal mengubah password. Silakan coba lagi.",
+          description: `Gagal mengubah password: ${error.message}`,
           variant: "destructive",
         })
       } else {
+        console.log('✅ Password updated successfully')
         toast({
           title: "Berhasil",
           description: "Password berhasil diubah!",
@@ -276,10 +314,10 @@ export default function ParentDashboardWithId() {
         })
       }
     } catch (error) {
-      console.error('Error changing password:', error)
+      console.error('❌ Error changing password:', error)
       toast({
         title: "Error",
-        description: "Terjadi kesalahan saat mengubah password.",
+        description: `Terjadi kesalahan: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       })
     }

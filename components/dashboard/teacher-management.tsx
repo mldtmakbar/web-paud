@@ -22,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { getTeachers, addTeacher, updateTeacher, getAccounts, addAccount, updateAccount, deleteAccount } from '@/lib/database'
 import { deleteTeacher } from '@/lib/teacher-service'
+import { hashPassword } from '@/lib/password'
 import { PlusIcon, PenIcon, TrashIcon, EyeIcon, SearchIcon, FilterIcon, UserIcon, KeyIcon } from "lucide-react"
 import type { Teacher, UserAccount } from '@/lib/types'
 
@@ -184,23 +185,28 @@ export function TeacherManagement() {
   async function handleCreateAccount(email: string, password: string) {
     if (!selectedTeacher) return
 
-    const accountData = {
-      email,
-      password,
-      role: 'teacher' as const,
-      user_id: selectedTeacher.id,
-      user_name: selectedTeacher.name,
-      status: 'active' as const
-    }
-
     try {
+      // Hash password menggunakan bcrypt
+      const hashedPassword = await hashPassword(password)
+
+      const accountData = {
+        email,
+        password: hashedPassword,
+        role: 'teacher' as const,
+        user_id: selectedTeacher.id,
+        user_name: selectedTeacher.name,
+        status: 'active' as const
+      }
+
       const result = await addAccount(accountData)
       if (result) {
         await loadTeachers() // Reload data to get updated accounts
         setIsAccountDialogOpen(false)
+        alert('Akun berhasil dibuat!')
       }
     } catch (error) {
       console.error('Error creating account:', error)
+      alert('Gagal membuat akun. Silakan coba lagi.')
     }
   }
 
