@@ -796,14 +796,14 @@ export default function ParentDashboardWithId() {
                           <User className="h-5 w-5" />
                           Informasi Lengkap Siswa
                         </CardTitle>
-                        <Button 
+                        {/* <Button 
                           onClick={handleDownloadTranscript}
                           className="flex items-center gap-2"
                           size="sm"
                         >
                           <Download className="h-4 w-4" />
                           Unduh Transkrip
-                        </Button>
+                        </Button> */}
                       </div>
                     </CardHeader>
                     <CardContent>
